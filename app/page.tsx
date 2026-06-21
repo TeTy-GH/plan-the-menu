@@ -505,7 +505,7 @@ export default function Home() {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
                   <h2 className="text-lg font-bold text-slate-700">
-                    {selectedIngredients.length === 0 ? '📋 登録済みのメニュー' : '💡 マッチしたおすすめ'}
+                    {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '💡 マッチしたおすすめ'}
                   </h2>
                   <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">{recommendedMenus.length}件</span>
                 </div>
