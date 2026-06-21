@@ -488,7 +488,7 @@ export default function Home() {
             {/* 食材選択エリア */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>🧊 使いたい食材</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>🥦 使いたい食材</h2>
                 {selectedIngredients.length > 0 && (
                   <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
                     選択取消
@@ -570,7 +570,7 @@ export default function Home() {
                           </div>
                         </div>
                         <button onClick={() => handleAddToKeep(menu)} className={`bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 dark:hover:bg-white dark:hover:text-black rounded-lg font-bold transition-all shadow-sm shrink-0 ${currentStyles.masterBtn}`}>
-                          📌 追加
+                          📌 候補
                         </button>
                       </div>
                     ))
@@ -593,7 +593,7 @@ export default function Home() {
                         <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>{menu.title}</span>
                         <div className="flex gap-2 shrink-0">
                           <button onClick={() => triggerMadeModal(menu)} className={`bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg font-bold shadow-sm transition ${currentStyles.masterBtn}`}>✅ 作った！</button>
-                          <button onClick={() => handleRemoveFromKeep(menu.id)} className={`bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition ${currentStyles.masterBtn}`}>取消</button>
+                          <button onClick={() => handleRemoveFromKeep(menu.id)} className={`bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition ${currentStyles.masterBtn}`}>キャンセル</button>
                         </div>
                       </div>
                     ))
@@ -767,7 +767,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 食材の一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>🧊 食材の編集・削除</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>🥦 食材の編集・削除</h2>
                 <div className="max-h-96 overflow-y-auto pr-2 space-y-3">
                   {CATEGORIES.map(category => {
                     const filtered = ingredients.filter(ing => ing.category === category);
@@ -797,7 +797,7 @@ export default function Home() {
                                       ))}
                                     </select>
                                     <div className="flex gap-2">
-                                      <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>取消</button>
+                                      <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                                       <button onClick={() => handleUpdateIngredient(ing.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black ${currentStyles.masterBtn}`}>保存</button>
                                     </div>
                                   </div>
@@ -866,7 +866,7 @@ export default function Home() {
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2 border-t border-dashed border-slate-200 dark:border-zinc-800">
-                            <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>取消</button>
+                            <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                             <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
                           </div>
                         </div>
@@ -899,7 +899,8 @@ export default function Home() {
       {/* 統合型アプリ内確認モーダル */}
       {modal.show && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-sm w-full shadow-xl border border-slate-100 dark:border-zinc-800 space-y-4">
+          {/* 👇 ここの「max-w-sm」を「max-w-xl」に変更して横幅を広くしました */}
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-xl w-full shadow-xl border border-slate-100 dark:border-zinc-800 space-y-4">
             <h3 className={`${currentStyles.sectionTitle} font-bold text-slate-900 dark:text-white`}>
               {modal.title}
             </h3>
@@ -911,7 +912,7 @@ export default function Home() {
                 onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
                 className={`bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-bold text-slate-600 dark:text-white ${currentStyles.masterBtn}`}
               >
-                取消
+                キャンセル
               </button>
               <button 
                 onClick={handleModalConfirm} 
