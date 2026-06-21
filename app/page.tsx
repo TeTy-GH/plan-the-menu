@@ -7,9 +7,46 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 分類の定義（「肉・卵」から「肉・魚・卵」へ変更）
 const CATEGORIES = ['肉・魚・卵', '野菜', 'その他'] as const;
 type Category = typeof CATEGORIES[number];
+
+type FontSizeMode = 'small' | 'medium' | 'large';
+
+const FONT_SIZES = {
+  small: {
+    title: 'text-sm md:text-base',
+    btn: 'text-xs md:text-sm px-4 py-2',
+    score: 'text-[11px]',
+    category: 'text-xs',
+    sectionTitle: 'text-lg',
+    badge: 'text-[9px]',
+    input: 'text-sm p-2',
+    masterText: 'text-sm',
+    masterBtn: 'text-xs px-2 py-1',
+  },
+  medium: {
+    title: 'text-lg md:text-xl font-black',
+    btn: 'text-base md:text-lg px-5 py-3',
+    score: 'text-sm md:text-base',
+    category: 'text-base md:text-lg',
+    sectionTitle: 'text-2xl',
+    badge: 'text-xs',
+    input: 'text-base p-3',
+    masterText: 'text-base md:text-lg font-bold',
+    masterBtn: 'text-sm px-3 py-2',
+  },
+  large: {
+    title: 'text-2xl md:text-3xl font-black',
+    btn: 'text-xl md:text-2xl px-6 py-4',
+    score: 'text-lg md:text-xl',
+    category: 'text-xl md:text-2xl',
+    sectionTitle: 'text-3xl',
+    badge: 'text-sm',
+    input: 'text-xl p-4',
+    masterText: 'text-xl md:text-2xl font-black',
+    masterBtn: 'text-base px-4 py-2.5',
+  }
+};
 
 interface Ingredient {
   id: string; 
@@ -26,48 +63,68 @@ interface Menu {
   last_cooked_at?: string | null;
 }
 
+// 独自モーダル用の状態型定義
+interface ModalConfig {
+  show: boolean;
+  type: 'made' | 'cancel_cook' | 'delete_ingredient' | 'delete_menu' | null;
+  title: string;
+  message: string;
+  data: any;
+}
+
 export default function Home() {
-
-  // 画面モード切り替え ('app': メイン画面, 'master': マスタ管理画面)
   const [viewMode, setViewMode] = useState<'app' | 'master'>('app');
+  const [fontSize, setFontSize] = useState<FontSizeMode>('small');
 
-  // メイン画面用ステート
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [recommendedMenus, setRecommendedMenus] = useState<Menu[]>([]);
   const [keepList, setKeepList] = useState<Menu[]>([]);
-  const [showConfirm, setShowConfirm] = useState<{ show: boolean; menu: Menu | null }>({ show: false, menu: null });
+  
+  // 統合された確認モーダル管理（システムalert/confirmの代わり）
+  const [modal, setModal] = useState<ModalConfig>({
+    show: false,
+    type: null,
+    title: '',
+    message: '',
+    data: null
+  });
+
   const [loading, setLoading] = useState(false);
 
-  // マスタ新規登録用ステート
   const [newMenuTitle, setNewMenuTitle] = useState('');
   const [newMenuIngredients, setNewMenuIngredients] = useState<string[]>([]);
   const [newIngredientName, setNewIngredientName] = useState('');
   const [newIngredientCategory, setNewIngredientCategory] = useState<Category>('その他');
   const [masterLoading, setMasterLoading] = useState(false);
 
-  // インライン編集用ステート
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [editingCategory, setEditingCategory] = useState<Category>('その他');
   const [editingMenuIngredients, setEditingMenuIngredients] = useState<string[]>([]);
 
-  // データ再取得用フラグ
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // 【機能変更】調理候補メニューから食材データを自動集計（名前だけでなくオブジェクトごと保持するように変更）
   const [shoppingList, setShoppingList] = useState<Ingredient[]>([]);
 
-  // 調理候補メニューから食材を自動集計
+  useEffect(() => {
+    const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
+    if (savedSize && ['small', 'medium', 'large'].includes(savedSize)) {
+      setFontSize(savedSize);
+    }
+  }, []);
+
+  const handleFontSizeChange = (size: FontSizeMode) => {
+    setFontSize(size);
+    localStorage.setItem('dinner_app_font_size', size);
+  };
+
   useEffect(() => {
     async function aggregateIngredients() {
       if (keepList.length === 0) {
         setShoppingList([]);
         return;
       }
-
       const menuIds = keepList.map(m => m.id);
-      
       const { data } = await supabase
         .from('menu_ingredients')
         .select('ingredient_id')
@@ -75,8 +132,6 @@ export default function Home() {
 
       if (data) {
         const uniqueIds = [...new Set(data.map(item => item.ingredient_id))];
-        
-        // 分類ごとに分けるため、食材オブジェクトのままでリストを作成
         const targetIngredients = ingredients.filter(ing => uniqueIds.includes(ing.id));
         setShoppingList(targetIngredients);
       }
@@ -84,7 +139,6 @@ export default function Home() {
     aggregateIngredients();
   }, [keepList, ingredients]);
   
-  // 1. 食材一覧の取得
   useEffect(() => {
     async function fetchIngredients() {
       const { data, error } = await supabase
@@ -93,24 +147,19 @@ export default function Home() {
         .order('name');
       
       if (!error && data) {
-        // データベースの型をフロントエンドの型に合わせる（旧『肉・卵』の場合は『その他』としてフォールバックしつつマスタで再保存できるようにする）
         const formattedData = data.map(item => ({
           ...item,
           category: (CATEGORIES.includes(item.category as any) ? item.category : 'その他') as Category
         }));
         setIngredients(formattedData);
-      } else {
-        console.error("食材取得エラー:", error);
       }
     }
     fetchIngredients();
   }, [refreshTrigger]);
 
-  // 2. おすすめ・全件メニューの取得
   useEffect(() => {
     async function fetchMenus() {
       setLoading(true);
-
       const { data: countData } = await supabase
         .from('menu_ingredients')
         .select('menu_id');
@@ -123,10 +172,7 @@ export default function Home() {
       const targetIds = selectedIngredients.length === 0 ? [] : selectedIngredients;
       const { data, error } = await supabase.rpc('get_recommended_menus', { selected_ingredient_ids: targetIds });
 
-      if (error || !data) {
-        console.error("メニュー取得エラー:", error);
-        setRecommendedMenus([]);
-      } else {
+      if (!error && data) {
         const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
         if (Array.isArray(parsedData)) {
           const enrichedMenus = parsedData.map((m: Menu) => ({
@@ -139,6 +185,8 @@ export default function Home() {
         } else {
           setRecommendedMenus([]);
         }
+      } else {
+        setRecommendedMenus([]);
       }
       setLoading(false);
     }
@@ -160,59 +208,127 @@ export default function Home() {
     setKeepList(keepList.filter(item => item.id !== id));
   };
 
-  const handleMadeClick = (menu: Menu) => {
-    setShowConfirm({ show: true, menu });
+  // 各種確認画面の呼び出し（モーダル化）
+  const triggerMadeModal = (menu: Menu) => {
+    setModal({
+      show: true,
+      type: 'made',
+      title: '調理の確認',
+      message: `「${menu.title}」を作りましたか？`,
+      data: menu
+    });
   };
 
-  // 調理実績の登録
-  const handleConfirmMade = async () => {
-    if (!showConfirm.menu) return;
-    const menuId = showConfirm.menu.id;
+  const triggerCancelCookModal = (menuId: string, title: string) => {
+    setModal({
+      show: true,
+      type: 'cancel_cook',
+      title: '調理取消の確認',
+      message: `「${title}」の直近の調理実績を取り消しますか？`,
+      data: { menuId }
+    });
+  };
 
-    const { data: currentMenu } = await supabase
-      .from('menus')
-      .select('cook_count, last_cooked_at')
-      .eq('id', menuId)
-      .single();
+  const triggerDeleteIngredientModal = async (id: string, name: string) => {
+    const { data: connectedMenus } = await supabase
+      .from('menu_ingredients')
+      .select('menu_id, menus(title)')
+      .eq('ingredient_id', id);
 
-    const currentCount = currentMenu?.cook_count || 0;
-    const currentLast = currentMenu?.last_cooked_at || null;
+    const menuTitles = connectedMenus
+      ? connectedMenus.map((item: any) => item.menus?.title).filter(Boolean)
+      : [];
 
-    const { error } = await supabase
-      .from('menus')
-      .update({ 
-        cook_count: currentCount + 1,
-        prev_cooked_at: currentLast,
-        last_cooked_at: new Date().toISOString().split('T')[0]
-      })
-      .eq('id', menuId);
-
-    if (!error) {
-      alert(`「${showConfirm.menu.title}」の調理記録を更新しました！`);
-      handleRemoveFromKeep(menuId);
-      setRefreshTrigger(prev => prev + 1);
-    } else {
-      alert('調理記録の更新に失敗しました。');
+    let msg = `食材「${name}」をマスタから完全に削除しますか？`;
+    if (menuTitles.length > 0) {
+      const firstMenu = menuTitles[0];
+      const otherCount = menuTitles.length - 1;
+      const suffix = otherCount > 0 ? `（他に${otherCount}つのメニュー）` : '';
+      msg = `食材「${name}」は、メニュー「${firstMenu}」${suffix}で使用されています。\n\nすべてのメニューからこの食材を削除し、マスタからも完全に削除してもよろしいですか？\n\n※食材が未登録状態になるメニューが発生する場合があります。`;
     }
-    setShowConfirm({ show: false, menu: null });
+
+    setModal({
+      show: true,
+      type: 'delete_ingredient',
+      title: '削除の確認',
+      message: msg,
+      data: { id, name }
+    });
   };
 
-  // 直近の調理実績を取り消す
-  const handleCancelLastCooked = async (menuId: string, title: string) => {
-    if (!confirm(`「${title}」の直近の調理実績（1回分）を取り消しますか？`)) return;
+  const triggerDeleteMenuModal = (id: string, title: string) => {
+    setModal({
+      show: true,
+      type: 'delete_menu',
+      title: '削除の確認',
+      message: `メニュー「${title}」を削除しますか？\n\n※このメニューの使用食材マスタデータも同時に削除されます。`,
+      data: { id, title }
+    });
+  };
 
-    const { data, error } = await supabase.rpc('cancel_last_cooked', { target_menu_id: menuId });
+  // モーダルで「はい」を押した時の統合実行ルーチン
+  const handleModalConfirm = async () => {
+    if (!modal.type || !modal.data) return;
 
-    if (error) {
-      alert('実績の取り消しに失敗しました。');
-    } else {
-      const result = typeof data === 'string' ? JSON.parse(data) : data;
-      alert(result.message);
-      setRefreshTrigger(prev => prev + 1);
+    if (modal.type === 'made') {
+      const menu = modal.data as Menu;
+      const { data: currentMenu } = await supabase
+        .from('menus')
+        .select('cook_count, last_cooked_at')
+        .eq('id', menu.id)
+        .single();
+
+      const currentCount = currentMenu?.cook_count || 0;
+      const currentLast = currentMenu?.last_cooked_at || null;
+
+      const { error } = await supabase
+        .from('menus')
+        .update({ 
+          cook_count: currentCount + 1,
+          prev_cooked_at: currentLast,
+          last_cooked_at: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', menu.id);
+
+      if (!error) {
+        handleRemoveFromKeep(menu.id);
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } 
+    
+    else if (modal.type === 'cancel_cook') {
+      const { menuId } = modal.data;
+      const { error } = await supabase.rpc('cancel_last_cooked', { target_menu_id: menuId });
+      if (!error) {
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } 
+    
+    else if (modal.type === 'delete_ingredient') {
+      const { id } = modal.data;
+      setMasterLoading(true);
+      await supabase.from('menu_ingredients').delete().eq('ingredient_id', id);
+      const { error: ingError } = await supabase.from('ingredients').delete().eq('id', id);
+      if (!ingError) {
+        setSelectedIngredients(prev => prev.filter(item => item !== id));
+        setRefreshTrigger(prev => prev + 1);
+      }
+      setMasterLoading(false);
+    } 
+    
+    else if (modal.type === 'delete_menu') {
+      const { id } = modal.data;
+      await supabase.from('menu_ingredients').delete().eq('menu_id', id);
+      const { error } = await supabase.from('menus').delete().eq('id', id);
+      if (!error) {
+        handleRemoveFromKeep(id);
+        setRefreshTrigger(prev => prev + 1);
+      }
     }
+
+    setModal({ show: false, type: null, title: '', message: '', data: null });
   };
 
-  // マスタ：新しい単体食材の登録
   const handleRegisterIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIngredientName.trim()) return;
@@ -223,23 +339,18 @@ export default function Home() {
       .insert([{ name: newIngredientName.trim(), category: newIngredientCategory }]);
 
     if (!error) {
-      alert(`食材「${newIngredientName}（${newIngredientCategory}）」を登録しました。`);
       setNewIngredientName('');
       setNewIngredientCategory('その他');
       setRefreshTrigger(prev => prev + 1);
-    } else {
-      alert('食材の登録に失敗しました。');
     }
     setMasterLoading(false);
   };
 
-  // マスタ：新しいメニュー（および紐づく食材）の登録
   const handleRegisterMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMenuTitle.trim()) return;
 
     setMasterLoading(true);
-
     const { data: menuData, error: menuError } = await supabase
       .from('menus')
       .insert([{ title: newMenuTitle.trim(), cook_count: 0 }])
@@ -247,7 +358,6 @@ export default function Home() {
       .single();
 
     if (menuError || !menuData) {
-      alert('メニューの登録に失敗しました。');
       setMasterLoading(false);
       return;
     }
@@ -257,24 +367,15 @@ export default function Home() {
         menu_id: menuData.id,
         ingredient_id: ingId
       }));
-
-      const { error: relationError } = await supabase
-        .from('menu_ingredients')
-        .insert(relationData);
-
-      if (relationError) {
-        alert('メニューは登録されましたが、食材の紐付けに失敗しました。');
-      }
+      await supabase.from('menu_ingredients').insert(relationData);
     }
 
-    alert(`メニュー「${newMenuTitle}」のマスタ登録が完了しました！`);
     setNewMenuTitle('');
     setNewMenuIngredients([]);
     setRefreshTrigger(prev => prev + 1);
     setMasterLoading(false);
   };
 
-  // マスタ：食材の編集保存
   const handleUpdateIngredient = async (id: string) => {
     if (!editingText.trim()) return;
     const { error } = await supabase
@@ -285,12 +386,9 @@ export default function Home() {
     if (!error) {
       setEditingId(null);
       setRefreshTrigger(prev => prev + 1);
-    } else {
-      alert('食材の更新に失敗しました。');
     }
   };
 
-  // 既存 of メニューボタンが押されたとき、現在の紐付け食材を先読みする
   const handleStartEditMenu = async (menu: Menu) => {
     setEditingId(menu.id);
     setEditingText(menu.title);
@@ -307,14 +405,12 @@ export default function Home() {
     }
   };
 
-  // 編集中のメニューに対する食材チェックボックスのON/OFF切り替え
   const handleToggleEditingMenuIngredient = (id: string) => {
     setEditingMenuIngredients(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
 
-  // マスタ：メニュー名 ＆ 使用食材 の同時アップデート保存
   const handleUpdateMenuAndIngredients = async (menuId: string) => {
     if (!editingText.trim()) return;
     setMasterLoading(true);
@@ -325,7 +421,6 @@ export default function Home() {
       .eq('id', menuId);
 
     if (menuError) {
-      alert('メニュー名の更新に失敗しました。');
       setMasterLoading(false);
       return;
     }
@@ -337,16 +432,7 @@ export default function Home() {
         menu_id: menuId,
         ingredient_id: ingId
       }));
-
-      const { error: relationError } = await supabase
-        .from('menu_ingredients')
-        .insert(relationData);
-
-      if (relationError) {
-        alert('メニュー名は更新されましたが、使用食材の再紐付けに失敗しました。');
-        setMasterLoading(false);
-        return;
-      }
+      await supabase.from('menu_ingredients').insert(relationData);
     }
 
     setEditingId(null);
@@ -354,87 +440,14 @@ export default function Home() {
     setMasterLoading(false);
   };
 
-  // 食材の削除（紐づく使用食材データも巻き込んで削除）
-  const handleDeleteIngredient = async (id: string, name: string) => {
-    const { data: connectedMenus, error: fetchError } = await supabase
-      .from('menu_ingredients')
-      .select(`
-        menu_id,
-        menus ( title )
-      `)
-      .eq('ingredient_id', id);
-
-    if (fetchError) {
-      alert('使用状況の確認に失敗しました。');
-      return;
-    }
-
-    const menuTitles = connectedMenus
-      ? connectedMenus.map((item: any) => item.menus?.title).filter(Boolean)
-      : [];
-
-    let confirmMessage = `食材「${name}」をマスタから完全に削除しますか？`;
-
-    if (menuTitles.length > 0) {
-      const firstMenu = menuTitles[0];
-      const otherCount = menuTitles.length - 1;
-      const countSuffix = otherCount > 0 ? `（他に${otherCount}つのメニュー）` : '';
-      
-      confirmMessage = `食材「${name}」は、メニュー「${firstMenu}」${countSuffix}で使用されています。\n\nすべてのメニューからこの食材を削除し、マスタからも完全に削除してもよろしいですか？\n※食材が未登録状態になるメニューが発生する場合があります。`;
-    }
-
-    if (!confirm(confirmMessage)) return;
-
-    setMasterLoading(true);
-
-    const { error: relError } = await supabase
-      .from('menu_ingredients')
-      .delete()
-      .eq('ingredient_id', id);
-
-    if (relError) {
-      alert('使用食材データのクレンジングに失敗しました。');
-      setMasterLoading(false);
-      return;
-    }
-
-    const { error: ingError } = await supabase
-      .from('ingredients')
-      .delete()
-      .eq('id', id);
-
-    if (!ingError) {
-      alert(`食材「${name}」の削除が完了しました。`);
-      setSelectedIngredients(prev => prev.filter(item => item !== id));
-      setRefreshTrigger(prev => prev + 1);
-    } else {
-      alert('食材マスタの削除に失敗しました。');
-    }
-    
-    setMasterLoading(false);
-  };
-
-  // マスタ：メニューの削除
-  const handleDeleteMenu = async (id: string, title: string) => {
-    if (!confirm(`メニュー「${title}」を削除しますか？\n※このメニューの使用食材マスタデータも同時に削除されます。`)) return;
-
-    await supabase.from('menu_ingredients').delete().eq('menu_id', id);
-    const { error } = await supabase.from('menus').delete().eq('id', id);
-
-    if (!error) {
-      alert('メニューを削除しました。');
-      handleRemoveFromKeep(id);
-      setRefreshTrigger(prev => prev + 1);
-    } else {
-      alert('メニューの削除に失敗しました。');
-    }
-  };
-
   const handleToggleMasterIngredientSelection = (id: string) => {
     setNewMenuIngredients(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
+
+  const currentStyles = FONT_SIZES[fontSize];
+  const inputGlobalStyle = "bg-gray-300 text-black font-black placeholder-zinc-500 border-slate-300";
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
@@ -448,7 +461,7 @@ export default function Home() {
           <div className="flex justify-center gap-2">
             <button
               onClick={() => setViewMode('app')}
-              className={`px-5 py-2 rounded-xl font-bold text-sm transition-all ${
+              className={`px-6 py-2.5 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'app' 
                   ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
                   : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -458,7 +471,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => { setViewMode('master'); setEditingId(null); }}
-              className={`px-5 py-2 rounded-xl font-bold text-sm transition-all ${
+              className={`px-6 py-2.5 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'master' 
                   ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
                   : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -475,24 +488,23 @@ export default function Home() {
             {/* 食材選択エリア */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-700 dark:text-white flex items-center gap-2">🛒 使いたい食材</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>🧊 使いたい食材</h2>
                 {selectedIngredients.length > 0 && (
-                  <button onClick={() => setSelectedIngredients([])} className="text-xs text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline">
+                  <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
                     選択取消
                   </button>
                 )}
               </div>
               
               {ingredients.length > 0 ? (
-                <div className="max-h-60 overflow-y-auto pr-2 border border-dashed border-slate-100 dark:border-zinc-800 p-3 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-4">
-                  {/* 「肉・魚・卵」「野菜」「その他」の順にループ表示 */}
+                <div className="max-h-72 overflow-y-auto pr-2 border border-dashed border-slate-100 dark:border-zinc-800 p-3 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-4">
                   {CATEGORIES.map(category => {
                     const filteredIngredients = ingredients.filter(ing => ing.category === category);
                     if (filteredIngredients.length === 0) return null;
                     
                     return (
                       <div key={category} className="space-y-1.5">
-                        <span className="block text-xs font-black text-indigo-600 dark:text-zinc-400 tracking-wider">
+                        <span className={`block font-black text-indigo-600 dark:text-zinc-400 tracking-wider ${currentStyles.category}`}>
                           【{category}】
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -502,7 +514,7 @@ export default function Home() {
                               <button
                                 key={ing.id}
                                 onClick={() => handleToggleIngredient(ing.id)}
-                                className={`px-4 py-2 rounded-xl border text-xs md:text-sm font-bold transition-all duration-200 ${
+                                className={`rounded-xl border font-bold transition-all duration-200 ${currentStyles.btn} ${
                                   isSelected 
                                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
                                     : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -518,7 +530,7 @@ export default function Home() {
                   })}
                 </div>
               ) : (
-                <p className="text-slate-400 dark:text-white text-sm">食材がありません。「設定」から登録してください。</p>
+                <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>食材がありません。「設定」から登録してください。</p>
               )}
             </div>
 
@@ -527,43 +539,43 @@ export default function Home() {
               {/* おすすめリスト */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-zinc-800 pb-3">
-                  <h2 className="text-lg font-bold text-slate-700 dark:text-white">
+                  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '💡 マッチしたおすすめ'}
                   </h2>
-                  <span className="text-xs bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-white font-bold px-2 py-0.5 rounded-full">{recommendedMenus.length}件</span>
+                  <span className={`bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{recommendedMenus.length}件</span>
                 </div>
 
-                <div className="max-h-[450px] overflow-y-auto pr-2 space-y-2 flex-1">
+                <div className="max-h-[550px] overflow-y-auto pr-2 space-y-2 flex-1">
                   {loading ? (
-                    <div className="text-center py-8 text-slate-400 dark:text-white text-sm animate-pulse">メニューを取得中...</div>
+                    <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
                   ) : recommendedMenus.length > 0 ? (
                     recommendedMenus.map(menu => (
                       <div key={menu.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-800 dark:text-white text-sm md:text-base">{menu.title}</span>
+                        <div className="flex flex-col gap-1 flex-1 pr-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
                             {menu.ingredient_count === 0 && (
-                              <span className="text-[9px] bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse">
+                              <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
                                 ⚠️食材未登録
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-bold">　おすすめスコア: {Math.round(menu.score || 0)}点</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>　おすすめスコア: {Math.round(menu.score || 0)}点</span>
                             {menu.cook_count && menu.cook_count > 0 ? (
-                              <button onClick={() => handleCancelLastCooked(menu.id, menu.title)} className="text-[10px] text-rose-500 dark:text-white hover:text-rose-700 dark:hover:underline font-bold underline">
-                                ↩ 調理取消
+                              <button onClick={() => triggerCancelCookModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}>
+                               　↩ 調理取消
                               </button>
                             ) : null}
                           </div>
                         </div>
-                        <button onClick={() => handleAddToKeep(menu)} className="text-xs bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 dark:hover:bg-white dark:hover:text-black px-3 py-2 rounded-lg font-bold transition-all shadow-sm">
-                          🌟 候補に追加
+                        <button onClick={() => handleAddToKeep(menu)} className={`bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 dark:hover:bg-white dark:hover:text-black rounded-lg font-bold transition-all shadow-sm shrink-0 ${currentStyles.masterBtn}`}>
+                          📌 追加
                         </button>
                       </div>
                     ))
                   ) : (
-                    <p className="text-slate-400 dark:text-white text-sm text-center py-8">メニューが見つかりませんでした。</p>
+                    <p className={`text-slate-400 dark:text-white text-center py-8 ${currentStyles.masterText}`}>メニューが見つかりませんでした。</p>
                   )}
                 </div>
               </div>
@@ -571,44 +583,43 @@ export default function Home() {
               {/* キープ中 */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-zinc-800 pb-3">
-                  <h2 className="text-lg font-bold text-slate-700 dark:text-white">📌 調理候補</h2>
-                  <span className="text-xs bg-indigo-100 dark:bg-zinc-800 text-indigo-700 dark:text-white font-bold px-2 py-0.5 rounded-full">{keepList.length}件</span>
+                  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>📌 調理候補</h2>
+                  <span className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-700 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{keepList.length}件</span>
                 </div>
-                <div className="max-h-[450px] overflow-y-auto pr-2 space-y-2 flex-1">
+                <div className="max-h-[550px] overflow-y-auto pr-2 space-y-2 flex-1">
                   {keepList.length > 0 ? (
                     keepList.map(menu => (
                       <div key={menu.id} className="flex items-center justify-between p-3.5 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
-                        <span className="font-bold text-slate-800 dark:text-white text-sm md:text-base">{menu.title}</span>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleMadeClick(menu)} className="text-xs bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 px-3 py-2 rounded-lg font-bold shadow-sm transition">✅ 作った！</button>
-                          <button onClick={() => handleRemoveFromKeep(menu.id)} className="text-xs bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 px-2.5 py-2 rounded-lg transition">取消</button>
+                        <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>{menu.title}</span>
+                        <div className="flex gap-2 shrink-0">
+                          <button onClick={() => triggerMadeModal(menu)} className={`bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg font-bold shadow-sm transition ${currentStyles.masterBtn}`}>✅ 作った！</button>
+                          <button onClick={() => handleRemoveFromKeep(menu.id)} className={`bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition ${currentStyles.masterBtn}`}>取消</button>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/30 dark:bg-zinc-950">
-                      <p className="text-slate-400 dark:text-white text-xs md:text-sm">作りたいメニューを追加してみましょう</p>
+                      <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>作りたいメニューを追加してみましょう</p>
                     </div>
                   )}
                   {keepList.length > 0 && (
                     <div className="mt-6 pt-4 border-t border-indigo-100 dark:border-zinc-800 space-y-3">
-                      <h3 className="text-sm font-bold text-indigo-700 dark:text-white">🛒 必要な食材</h3>
+                      <h3 className={`font-bold text-indigo-700 dark:text-white ${currentStyles.masterText}`}>🛒 必要な食材</h3>
                       
                       {shoppingList.length > 0 ? (
-                        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                          {/* 【新機能】必要な食材も3つの分類に分けて綺麗に表示 */}
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                           {CATEGORIES.map(category => {
                             const filteredList = shoppingList.filter(ing => ing.category === category);
                             if (filteredList.length === 0) return null;
 
                             return (
                               <div key={category} className="space-y-1">
-                                <span className="block text-[10px] font-black text-indigo-600 dark:text-zinc-400">
+                                <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.category}`}>
                                   【{category}】
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {filteredList.map(ing => (
-                                    <span key={ing.id} className="px-2 py-1 bg-indigo-100 dark:bg-zinc-800 text-indigo-800 dark:text-white rounded-lg text-[11px] font-bold">
+                                    <span key={ing.id} className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-800 dark:text-white rounded-lg font-bold ${currentStyles.btn}`}>
                                       {ing.name}
                                     </span>
                                   ))}
@@ -618,7 +629,7 @@ export default function Home() {
                           })}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400 dark:text-white">食材情報が未登録のメニューが含まれています</span>
+                        <span className={`text-slate-400 dark:text-white ${currentStyles.score}`}>食材情報が未登録のメニューが含まれています</span>
                       )}
                     </div>
                   )}
@@ -628,68 +639,104 @@ export default function Home() {
           </>
         )}
 
-        {/* ----------------- 画面2: マスタ管理画面（登録・編集・削除） ----------------- */}
+        {/* ----------------- 画面2: マスタ管理・設定画面 ----------------- */}
         {viewMode === 'master' && (
           <div className="space-y-8">
-            {/* 上段：登録フォームエリア */}
+            
+            {/* 文字サイズ変更 設定カード */}
+            <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+              <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🔎 画面の文字サイズ設定</h2>
+              <div className="flex flex-wrap gap-2 max-w-xl">
+                {(['small', 'medium', 'large'] as const).map((size) => {
+                  const label = size === 'small' ? '小（標準）' : size === 'medium' ? '中（1.5倍）' : '大（2倍）';
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => handleFontSizeChange(size)}
+                      className={`flex-1 py-3 px-2 rounded-xl font-bold border transition-all ${currentStyles.masterText} ${
+                        fontSize === size
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-white dark:text-black dark:border-white'
+                          : 'bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 登録フォームエリア */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* 食材単体のマスタ登録 */}
               <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
-                <h2 className="text-base font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2">🥦 食材の追加</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🥦 食材の追加</h2>
                 <form onSubmit={handleRegisterIngredient} className="space-y-3">
                   <input
                     type="text"
                     value={newIngredientName}
                     onChange={(e) => setNewIngredientName(e.target.value)}
                     placeholder="例: キャベツ、ひき肉"
-                    className="w-full p-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-indigo-600 dark:bg-zinc-950 dark:text-white dark:placeholder-zinc-600 font-medium"
+                    className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                     disabled={masterLoading}
                   />
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 dark:text-white mb-1">分類：</label>
+                    <label className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>分類：</label>
                     <select
                       value={newIngredientCategory}
                       onChange={(e) => setNewIngredientCategory(e.target.value as Category)}
-                      className="w-full p-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-indigo-600 bg-white dark:bg-zinc-950 dark:text-white font-medium"
+                      className={`w-full border rounded-xl focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles.input}`}
                       disabled={masterLoading}
                     >
-                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {CATEGORIES.map(cat => (
+                        <option key={cat} value={cat} className="font-black">
+                          {cat}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  <button type="submit" disabled={masterLoading || !newIngredientName.trim()} className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:bg-zinc-800 dark:disabled:bg-zinc-950 dark:disabled:text-zinc-700 disabled:text-slate-400 text-white font-bold rounded-xl text-sm transition">
+                  <button 
+                    type="submit" 
+                    disabled={masterLoading || !newIngredientName.trim()} 
+                    className={`w-full text-white font-black rounded-xl transition shadow-sm ${currentStyles.input} ${
+                      !newIngredientName.trim() 
+                        ? 'bg-slate-200 text-slate-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
                     新しい食材を登録
                   </button>
                 </form>
               </div>
 
-              {/* メニューマスタ登録 */}
+              {/* メメニューマスタ登録 */}
               <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
-                <h2 className="text-base font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2">🍽️ メニューの追加</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🍽️ メニューの追加</h2>
                 <form onSubmit={handleRegisterMenu} className="space-y-3">
                   <input
                     type="text"
                     value={newMenuTitle}
                     onChange={(e) => setNewMenuTitle(e.target.value)}
                     placeholder="例: ハンバーグ"
-                    className="w-full p-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-indigo-600 dark:bg-zinc-950 dark:text-white dark:placeholder-zinc-600 font-medium"
+                    className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                     disabled={masterLoading}
                   />
                   <div>
-                    <span className="block text-xs font-bold text-slate-400 dark:text-white mb-1">使用する食材を選択:</span>
-                    <div className="max-h-36 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-3">
+                    <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材を選択:</span>
+                    <div className="max-h-48 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-3">
                       {CATEGORIES.map(category => {
                         const filtered = ingredients.filter(ing => ing.category === category);
                         if (filtered.length === 0) return null;
                         return (
                           <div key={category} className="space-y-1">
-                            <span className="block text-[10px] font-black text-indigo-600 dark:text-zinc-400">【{category}】</span>
+                            <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.score}`}>【{category}】</span>
                             <div className="flex flex-wrap gap-1.5">
                               {filtered.map(ing => {
                                 const isTarget = newMenuIngredients.includes(ing.id);
                                 return (
                                   <button
                                     type="button" key={ing.id} onClick={() => handleToggleMasterIngredientSelection(ing.id)}
-                                    className={`px-2 py-1 rounded border text-xs font-bold transition ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'}`}
+                                    className={`rounded border font-bold transition ${currentStyles.masterBtn} ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'}`}
                                   >
                                     {ing.name}
                                   </button>
@@ -701,7 +748,15 @@ export default function Home() {
                       })}
                     </div>
                   </div>
-                  <button type="submit" disabled={masterLoading || !newMenuTitle.trim()} className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:bg-zinc-800 dark:disabled:bg-zinc-950 dark:disabled:text-zinc-700 disabled:text-slate-400 text-white font-bold rounded-xl text-sm transition">
+                  <button 
+                    type="submit" 
+                    disabled={masterLoading || !newMenuTitle.trim()} 
+                    className={`w-full text-white font-black rounded-xl transition shadow-sm ${currentStyles.input} ${
+                      !newMenuTitle.trim() 
+                        ? 'bg-slate-200 text-slate-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
                     新しいメニューを登録
                   </button>
                 </form>
@@ -710,46 +765,49 @@ export default function Home() {
 
             {/* 下段：既存データの編集・削除リストエリア */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
               {/* 食材の一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
-                <h2 className="text-base font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2">📋 食材の編集・削除</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>🧊 食材の編集・削除</h2>
                 <div className="max-h-96 overflow-y-auto pr-2 space-y-3">
                   {CATEGORIES.map(category => {
                     const filtered = ingredients.filter(ing => ing.category === category);
                     if (filtered.length === 0) return null;
                     return (
                       <div key={category} className="space-y-1">
-                        <span className="block text-xs font-black text-indigo-600 dark:text-zinc-400">【{category}】</span>
+                        <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.category}`}>【{category}】</span>
                         <div className="space-y-1">
                           {filtered.map(ing => (
-                            <div key={ing.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 rounded-lg text-sm">
+                            <div key={ing.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 rounded-lg">
                               {editingId === ing.id ? (
                                 <div className="flex flex-col gap-2 w-full bg-white dark:bg-zinc-900 p-2 rounded-lg border dark:border-zinc-800">
                                   <input
                                     type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
-                                    className="p-1 border dark:border-zinc-800 rounded text-sm focus:outline-indigo-600 bg-white dark:bg-zinc-950 dark:text-white font-bold"
+                                    className={`w-full border rounded focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                                   />
                                   <div className="flex items-center justify-between gap-2">
                                     <select
                                       value={editingCategory}
                                       onChange={(e) => setEditingCategory(e.target.value as Category)}
-                                      className="p-1 text-xs border dark:border-zinc-800 rounded bg-white dark:bg-zinc-950 dark:text-white font-bold"
+                                      className={`border rounded focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles.input}`}
                                     >
-                                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                      {CATEGORIES.map(cat => (
+                                        <option key={cat} value={cat} className="font-black">
+                                          {cat}
+                                        </option>
+                                      ))}
                                     </select>
-                                    <div className="flex gap-1">
-                                      <button onClick={() => handleUpdateIngredient(ing.id)} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded font-bold dark:bg-white dark:text-black">保存</button>
-                                      <button onClick={() => setEditingId(null)} className="text-xs bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-white px-2 py-1 rounded font-bold">取消</button>
+                                    <div className="flex gap-2">
+                                      <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>取消</button>
+                                      <button onClick={() => handleUpdateIngredient(ing.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black ${currentStyles.masterBtn}`}>保存</button>
                                     </div>
                                   </div>
                                 </div>
                               ) : (
                                 <>
-                                  <span className="font-bold text-slate-700 dark:text-white">{ing.name}</span>
+                                  <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{ing.name}</span>
                                   <div className="flex gap-1">
-                                    <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); setEditingCategory(ing.category); }} className="text-xs text-indigo-600 dark:text-white hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">編集</button>
-                                    <button onClick={() => handleDeleteIngredient(ing.id, ing.name)} className="text-xs text-rose-500 dark:text-rose-400 hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">削除</button>
+                                    <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); setEditingCategory(ing.category); }} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
+                                    <button onClick={() => triggerDeleteIngredientModal(ing.id, ing.name)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                                   </div>
                                 </>
                               )}
@@ -762,37 +820,36 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* メニューの一覧・編集（名前＋使用食材）・削除 */}
+              {/* メメニューの一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
-                <h2 className="text-base font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2">📋 メニューの編集・削除</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>📋 メニューの編集・削除</h2>
                 <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
                   {recommendedMenus.map(menu => (
-                    <div key={menu.id} className="p-2.5 bg-slate-50 dark:bg-zinc-950 rounded-xl text-sm border border-slate-100 dark:border-zinc-800">
+                    <div key={menu.id} className="p-2.5 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
                       {editingId === menu.id ? (
-                        // メニュー編集モード
                         <div className="space-y-3">
                           <div className="flex gap-1.5">
                             <input
                               type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
-                              className="p-1.5 border dark:border-zinc-800 rounded-xl flex-1 text-sm focus:outline-indigo-600 bg-white dark:bg-zinc-900 dark:text-white font-bold"
+                              className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                             />
                           </div>
                           <div>
-                            <span className="block text-[11px] font-bold text-slate-400 dark:text-white mb-1">使用する食材:</span>
-                            <div className="max-h-36 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-zinc-950 space-y-2">
+                            <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材:</span>
+                            <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-zinc-950 space-y-2">
                               {CATEGORIES.map(category => {
                                 const filtered = ingredients.filter(ing => ing.category === category);
                                 if (filtered.length === 0) return null;
                                 return (
                                   <div key={category} className="space-y-0.5">
-                                    <span className="block text-[10px] font-black text-indigo-600 dark:text-zinc-400">【{category}】</span>
+                                    <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.score}`}>【{category}】</span>
                                     <div className="flex flex-wrap gap-1">
                                       {filtered.map(ing => {
                                         const isChecked = editingMenuIngredients.includes(ing.id);
                                         return (
                                           <button
                                             type="button" key={ing.id} onClick={() => handleToggleEditingMenuIngredient(ing.id)}
-                                            className={`px-2 py-0.5 rounded text-xs font-bold border transition ${
+                                            className={`rounded font-bold border transition ${currentStyles.masterBtn} ${
                                               isChecked 
                                                 ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600 shadow-sm' 
                                                 : 'bg-slate-50 dark:bg-zinc-900 text-slate-500 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -808,25 +865,24 @@ export default function Home() {
                               })}
                             </div>
                           </div>
-                          <div className="flex justify-end gap-1.5 pt-1 border-t border-dashed border-slate-200 dark:border-zinc-800">
-                            <button onClick={() => setEditingId(null)} className="text-xs bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-white px-3 py-1.5 rounded-lg font-bold">キャンセル</button>
-                            <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm dark:bg-white dark:text-black">変更を保存</button>
+                          <div className="flex justify-end gap-2 pt-2 border-t border-dashed border-slate-200 dark:border-zinc-800">
+                            <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>取消</button>
+                            <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
                           </div>
                         </div>
                       ) : (
-                        // 通常表示モード
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-700 dark:text-white">{menu.title}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{menu.title}</span>
                             {menu.ingredient_count === 0 && (
-                              <span className="text-[9px] bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold">
+                              <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold ${currentStyles.badge}`}>
                                 ⚠️食材未登録
                               </span>
                             )}
                           </div>
-                          <div className="flex gap-1">
-                            <button onClick={() => handleStartEditMenu(menu)} className="text-xs text-indigo-600 dark:text-white hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">編集</button>
-                            <button onClick={() => handleDeleteMenu(menu.id, menu.title)} className="text-xs text-rose-500 dark:text-rose-400 hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">削除</button>
+                          <div className="flex gap-1 shrink-0">
+                            <button onClick={() => handleStartEditMenu(menu)} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
+                            <button onClick={() => triggerDeleteMenuModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                           </div>
                         </div>
                       )}
@@ -834,22 +890,37 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-
             </div>
           </div>
         )}
 
       </div>
 
-      {/* 調理確定モーダル */}
-      {showConfirm.show && showConfirm.menu && (
+      {/* 統合型アプリ内確認モーダル */}
+      {modal.show && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-sm w-full shadow-xl border border-slate-100 dark:border-zinc-800 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">調理の確認</h3>
-            <p className="text-sm text-slate-600 dark:text-white leading-relaxed">「<span className="font-bold text-indigo-600 dark:text-white">{showConfirm.menu.title}</span>」を作りましたか？</p>
+            <h3 className={`${currentStyles.sectionTitle} font-bold text-slate-900 dark:text-white`}>
+              {modal.title}
+            </h3>
+            <p className={`text-slate-600 dark:text-white leading-relaxed whitespace-pre-line ${currentStyles.masterText}`}>
+              {modal.message}
+            </p>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowConfirm({ show: false, menu: null })} className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl text-sm font-bold text-slate-600 dark:text-white">キャンセル</button>
-              <button onClick={handleConfirmMade} className="px-4 py-2 bg-emerald-600 dark:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-sm">はい、作りました！</button>
+              <button 
+                onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
+                className={`bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-bold text-slate-600 dark:text-white ${currentStyles.masterBtn}`}
+              >
+                取消
+              </button>
+              <button 
+                onClick={handleModalConfirm} 
+                className={`text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
+                  modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
+                }`}
+              >
+                はい
+              </button>
             </div>
           </div>
         </div>
