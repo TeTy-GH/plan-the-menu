@@ -7,9 +7,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 分類の定義（「肉・卵」から「肉・魚・卵」へ変更）
+const CATEGORIES = ['肉・魚・卵', '野菜', 'その他'] as const;
+type Category = typeof CATEGORIES[number];
+
 interface Ingredient {
   id: string; 
   name: string;
+  category: Category;
 }
 
 interface Menu {
@@ -38,48 +43,45 @@ export default function Home() {
   const [newMenuTitle, setNewMenuTitle] = useState('');
   const [newMenuIngredients, setNewMenuIngredients] = useState<string[]>([]);
   const [newIngredientName, setNewIngredientName] = useState('');
+  const [newIngredientCategory, setNewIngredientCategory] = useState<Category>('その他');
   const [masterLoading, setMasterLoading] = useState(false);
 
   // インライン編集用ステート
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  const [editingMenuIngredients, setEditingMenuIngredients] = useState<string[]>([]); // 【新機能】編集中のメニューが使う食材IDリスト
+  const [editingCategory, setEditingCategory] = useState<Category>('その他');
+  const [editingMenuIngredients, setEditingMenuIngredients] = useState<string[]>([]);
 
   // データ再取得用フラグ
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // ステート定義の場所に追加
-  const [shoppingList, setShoppingList] = useState<string[]>([]);
+  // 【機能変更】調理候補メニューから食材データを自動集計（名前だけでなくオブジェクトごと保持するように変更）
+  const [shoppingList, setShoppingList] = useState<Ingredient[]>([]);
 
-  // 【新機能】調理候補メニューから食材を自動集計
+  // 調理候補メニューから食材を自動集計
   useEffect(() => {
-  async function aggregateIngredients() {
-    if (keepList.length === 0) {
-      setShoppingList([]);
-      return;
-    }
+    async function aggregateIngredients() {
+      if (keepList.length === 0) {
+        setShoppingList([]);
+        return;
+      }
 
-    const menuIds = keepList.map(m => m.id);
-    
-    // 中間テーブルから、現在キープしているメニューに関連する食材IDを全取得
-    const { data } = await supabase
-      .from('menu_ingredients')
-      .select('ingredient_id')
-      .in('menu_id', menuIds);
-
-    if (data) {
-      // 重複を除去した食材IDリストを作成
-      const uniqueIds = [...new Set(data.map(item => item.ingredient_id))];
+      const menuIds = keepList.map(m => m.id);
       
-      // IDから食材名へ変換
-      const names = ingredients
-        .filter(ing => uniqueIds.includes(ing.id))
-        .map(ing => ing.name);
+      const { data } = await supabase
+        .from('menu_ingredients')
+        .select('ingredient_id')
+        .in('menu_id', menuIds);
+
+      if (data) {
+        const uniqueIds = [...new Set(data.map(item => item.ingredient_id))];
         
-      setShoppingList(names);
+        // 分類ごとに分けるため、食材オブジェクトのままでリストを作成
+        const targetIngredients = ingredients.filter(ing => uniqueIds.includes(ing.id));
+        setShoppingList(targetIngredients);
+      }
     }
-  }
-  aggregateIngredients();
+    aggregateIngredients();
   }, [keepList, ingredients]);
   
   // 1. 食材一覧の取得
@@ -87,11 +89,16 @@ export default function Home() {
     async function fetchIngredients() {
       const { data, error } = await supabase
         .from('ingredients')
-        .select('id, name')
+        .select('id, name, category')
         .order('name');
       
       if (!error && data) {
-        setIngredients(data);
+        // データベースの型をフロントエンドの型に合わせる（旧『肉・卵』の場合は『その他』としてフォールバックしつつマスタで再保存できるようにする）
+        const formattedData = data.map(item => ({
+          ...item,
+          category: (CATEGORIES.includes(item.category as any) ? item.category : 'その他') as Category
+        }));
+        setIngredients(formattedData);
       } else {
         console.error("食材取得エラー:", error);
       }
@@ -213,11 +220,12 @@ export default function Home() {
     setMasterLoading(true);
     const { error } = await supabase
       .from('ingredients')
-      .insert([{ name: newIngredientName.trim() }]);
+      .insert([{ name: newIngredientName.trim(), category: newIngredientCategory }]);
 
     if (!error) {
-      alert(`食材「${newIngredientName}」を登録しました。`);
+      alert(`食材「${newIngredientName}（${newIngredientCategory}）」を登録しました。`);
       setNewIngredientName('');
+      setNewIngredientCategory('その他');
       setRefreshTrigger(prev => prev + 1);
     } else {
       alert('食材の登録に失敗しました。');
@@ -271,23 +279,22 @@ export default function Home() {
     if (!editingText.trim()) return;
     const { error } = await supabase
       .from('ingredients')
-      .update({ name: editingText.trim() })
+      .update({ name: editingText.trim(), category: editingCategory })
       .eq('id', id);
 
     if (!error) {
       setEditingId(null);
       setRefreshTrigger(prev => prev + 1);
     } else {
-      alert('食材名の更新に失敗しました。');
+      alert('食材の更新に失敗しました。');
     }
   };
 
-  // 【機能拡張】既存のメニューボタンが押されたとき、現在の紐付け食材を先読みする
+  // 既存 of メニューボタンが押されたとき、現在の紐付け食材を先読みする
   const handleStartEditMenu = async (menu: Menu) => {
     setEditingId(menu.id);
     setEditingText(menu.title);
     
-    // 現在このメニューに紐づいている食材のIDリストをSupabaseから取得
     const { data, error } = await supabase
       .from('menu_ingredients')
       .select('ingredient_id')
@@ -300,19 +307,18 @@ export default function Home() {
     }
   };
 
-  // 【機能拡張】編集中のメニューに対する食材チェックボックスのON/OFF切り替え
+  // 編集中のメニューに対する食材チェックボックスのON/OFF切り替え
   const handleToggleEditingMenuIngredient = (id: string) => {
     setEditingMenuIngredients(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
 
-  // 【機能拡張】マスタ：メニュー名 ＆ 使用食材 の同時アップデート保存
+  // マスタ：メニュー名 ＆ 使用食材 の同時アップデート保存
   const handleUpdateMenuAndIngredients = async (menuId: string) => {
     if (!editingText.trim()) return;
     setMasterLoading(true);
 
-    // 1. メニュータイトルの更新
     const { error: menuError } = await supabase
       .from('menus')
       .update({ title: editingText.trim() })
@@ -324,7 +330,6 @@ export default function Home() {
       return;
     }
 
-    // 2. 使用食材（中間テーブル）の更新。一度これまでの紐付けを全削除して、新しいリストでインサートし直す（リフレッシュ方式）
     await supabase.from('menu_ingredients').delete().eq('menu_id', menuId);
 
     if (editingMenuIngredients.length > 0) {
@@ -349,7 +354,7 @@ export default function Home() {
     setMasterLoading(false);
   };
 
-// 食材の削除（紐づく使用食材データも巻き込んで削除）
+  // 食材の削除（紐づく使用食材データも巻き込んで削除）
   const handleDeleteIngredient = async (id: string, name: string) => {
     const { data: connectedMenus, error: fetchError } = await supabase
       .from('menu_ingredients')
@@ -479,25 +484,38 @@ export default function Home() {
               </div>
               
               {ingredients.length > 0 ? (
-                <div className="max-h-40 overflow-y-auto pr-2 border border-dashed border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-zinc-950">
-                  <div className="flex flex-wrap gap-2">
-                    {ingredients.map(ing => {
-                      const isSelected = selectedIngredients.includes(ing.id);
-                      return (
-                        <button
-                          key={ing.id}
-                          onClick={() => handleToggleIngredient(ing.id)}
-                          className={`px-4 py-2 rounded-xl border text-xs md:text-sm font-bold transition-all duration-200 ${
-                            isSelected 
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
-                              : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
-                          }`}
-                        >
-                          {ing.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="max-h-60 overflow-y-auto pr-2 border border-dashed border-slate-100 dark:border-zinc-800 p-3 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-4">
+                  {/* 「肉・魚・卵」「野菜」「その他」の順にループ表示 */}
+                  {CATEGORIES.map(category => {
+                    const filteredIngredients = ingredients.filter(ing => ing.category === category);
+                    if (filteredIngredients.length === 0) return null;
+                    
+                    return (
+                      <div key={category} className="space-y-1.5">
+                        <span className="block text-xs font-black text-indigo-600 dark:text-zinc-400 tracking-wider">
+                          【{category}】
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {filteredIngredients.map(ing => {
+                            const isSelected = selectedIngredients.includes(ing.id);
+                            return (
+                              <button
+                                key={ing.id}
+                                onClick={() => handleToggleIngredient(ing.id)}
+                                className={`px-4 py-2 rounded-xl border text-xs md:text-sm font-bold transition-all duration-200 ${
+                                  isSelected 
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
+                                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                                }`}
+                              >
+                                {ing.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-slate-400 dark:text-white text-sm">食材がありません。「設定」から登録してください。</p>
@@ -531,7 +549,7 @@ export default function Home() {
                             )}
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] bg-amber-100 dark:bg-zinc-800 text-amber-800 dark:text-white px-2 py-0.5 rounded font-bold">おすすめスコア: {Math.round(menu.score || 0)}点</span>
+                            <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-bold">　おすすめスコア: {Math.round(menu.score || 0)}点</span>
                             {menu.cook_count && menu.cook_count > 0 ? (
                               <button onClick={() => handleCancelLastCooked(menu.id, menu.title)} className="text-[10px] text-rose-500 dark:text-white hover:text-rose-700 dark:hover:underline font-bold underline">
                                 ↩ 調理取消
@@ -573,19 +591,35 @@ export default function Home() {
                     </div>
                   )}
                   {keepList.length > 0 && (
-                    <div className="mt-6 pt-4 border-t border-indigo-100 dark:border-zinc-800">
-                      <h3 className="text-sm font-bold text-indigo-700 dark:text-white mb-2">🛒 必要な食材</h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {shoppingList.length > 0 ? (
-                          shoppingList.map((name, index) => (
-                            <span key={index} className="px-2 py-1 bg-indigo-100 dark:bg-zinc-800 text-indigo-800 dark:text-white rounded-lg text-[11px] font-bold">
-                              {name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-400 dark:text-white">食材情報が未登録のメニューが含まれています</span>
-                        )}
-                      </div>
+                    <div className="mt-6 pt-4 border-t border-indigo-100 dark:border-zinc-800 space-y-3">
+                      <h3 className="text-sm font-bold text-indigo-700 dark:text-white">🛒 必要な食材</h3>
+                      
+                      {shoppingList.length > 0 ? (
+                        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                          {/* 【新機能】必要な食材も3つの分類に分けて綺麗に表示 */}
+                          {CATEGORIES.map(category => {
+                            const filteredList = shoppingList.filter(ing => ing.category === category);
+                            if (filteredList.length === 0) return null;
+
+                            return (
+                              <div key={category} className="space-y-1">
+                                <span className="block text-[10px] font-black text-indigo-600 dark:text-zinc-400">
+                                  【{category}】
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {filteredList.map(ing => (
+                                    <span key={ing.id} className="px-2 py-1 bg-indigo-100 dark:bg-zinc-800 text-indigo-800 dark:text-white rounded-lg text-[11px] font-bold">
+                                      {ing.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 dark:text-white">食材情報が未登録のメニューが含まれています</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -611,6 +645,17 @@ export default function Home() {
                     className="w-full p-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-indigo-600 dark:bg-zinc-950 dark:text-white dark:placeholder-zinc-600 font-medium"
                     disabled={masterLoading}
                   />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 dark:text-white mb-1">分類：</label>
+                    <select
+                      value={newIngredientCategory}
+                      onChange={(e) => setNewIngredientCategory(e.target.value as Category)}
+                      className="w-full p-2 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-indigo-600 bg-white dark:bg-zinc-950 dark:text-white font-medium"
+                      disabled={masterLoading}
+                    >
+                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
                   <button type="submit" disabled={masterLoading || !newIngredientName.trim()} className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:bg-zinc-800 dark:disabled:bg-zinc-950 dark:disabled:text-zinc-700 disabled:text-slate-400 text-white font-bold rounded-xl text-sm transition">
                     新しい食材を登録
                   </button>
@@ -631,16 +676,27 @@ export default function Home() {
                   />
                   <div>
                     <span className="block text-xs font-bold text-slate-400 dark:text-white mb-1">使用する食材を選択:</span>
-                    <div className="max-h-24 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-zinc-950 flex flex-wrap gap-1.5">
-                      {ingredients.map(ing => {
-                        const isTarget = newMenuIngredients.includes(ing.id);
+                    <div className="max-h-36 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-3">
+                      {CATEGORIES.map(category => {
+                        const filtered = ingredients.filter(ing => ing.category === category);
+                        if (filtered.length === 0) return null;
                         return (
-                          <button
-                            type="button" key={ing.id} onClick={() => handleToggleMasterIngredientSelection(ing.id)}
-                            className={`px-2 py-1 rounded border text-xs font-bold transition ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'}`}
-                          >
-                            {ing.name}
-                          </button>
+                          <div key={category} className="space-y-1">
+                            <span className="block text-[10px] font-black text-indigo-600 dark:text-zinc-400">【{category}】</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {filtered.map(ing => {
+                                const isTarget = newMenuIngredients.includes(ing.id);
+                                return (
+                                  <button
+                                    type="button" key={ing.id} onClick={() => handleToggleMasterIngredientSelection(ing.id)}
+                                    className={`px-2 py-1 rounded border text-xs font-bold transition ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'}`}
+                                  >
+                                    {ing.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
@@ -658,29 +714,51 @@ export default function Home() {
               {/* 食材の一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className="text-base font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2">📋 食材の編集・削除</h2>
-                <div className="max-h-96 overflow-y-auto pr-2 space-y-1.5">
-                  {ingredients.map(ing => (
-                    <div key={ing.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 rounded-lg text-sm">
-                      {editingId === ing.id ? (
-                        <div className="flex gap-1.5 w-full">
-                          <input
-                            type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
-                            className="p-1 border dark:border-zinc-800 rounded flex-1 text-sm focus:outline-indigo-600 dark:bg-zinc-900 dark:text-white"
-                          />
-                          <button onClick={() => handleUpdateIngredient(ing.id)} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded font-bold dark:bg-white dark:text-black">保存</button>
-                          <button onClick={() => setEditingId(null)} className="text-xs bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-white px-2 py-1 rounded font-bold">取消</button>
+                <div className="max-h-96 overflow-y-auto pr-2 space-y-3">
+                  {CATEGORIES.map(category => {
+                    const filtered = ingredients.filter(ing => ing.category === category);
+                    if (filtered.length === 0) return null;
+                    return (
+                      <div key={category} className="space-y-1">
+                        <span className="block text-xs font-black text-indigo-600 dark:text-zinc-400">【{category}】</span>
+                        <div className="space-y-1">
+                          {filtered.map(ing => (
+                            <div key={ing.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 rounded-lg text-sm">
+                              {editingId === ing.id ? (
+                                <div className="flex flex-col gap-2 w-full bg-white dark:bg-zinc-900 p-2 rounded-lg border dark:border-zinc-800">
+                                  <input
+                                    type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
+                                    className="p-1 border dark:border-zinc-800 rounded text-sm focus:outline-indigo-600 bg-white dark:bg-zinc-950 dark:text-white font-bold"
+                                  />
+                                  <div className="flex items-center justify-between gap-2">
+                                    <select
+                                      value={editingCategory}
+                                      onChange={(e) => setEditingCategory(e.target.value as Category)}
+                                      className="p-1 text-xs border dark:border-zinc-800 rounded bg-white dark:bg-zinc-950 dark:text-white font-bold"
+                                    >
+                                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+                                    <div className="flex gap-1">
+                                      <button onClick={() => handleUpdateIngredient(ing.id)} className="text-xs bg-indigo-600 text-white px-2 py-1 rounded font-bold dark:bg-white dark:text-black">保存</button>
+                                      <button onClick={() => setEditingId(null)} className="text-xs bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-white px-2 py-1 rounded font-bold">取消</button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="font-bold text-slate-700 dark:text-white">{ing.name}</span>
+                                  <div className="flex gap-1">
+                                    <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); setEditingCategory(ing.category); }} className="text-xs text-indigo-600 dark:text-white hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">編集</button>
+                                    <button onClick={() => handleDeleteIngredient(ing.id, ing.name)} className="text-xs text-rose-500 dark:text-rose-400 hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">削除</button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ) : (
-                        <>
-                          <span className="font-bold text-slate-700 dark:text-white">{ing.name}</span>
-                          <div className="flex gap-1">
-                            <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); }} className="text-xs text-indigo-600 dark:text-white hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">編集</button>
-                            <button onClick={() => handleDeleteIngredient(ing.id, ing.name)} className="text-xs text-rose-500 dark:text-rose-400 hover:underline px-1.5 py-1 font-bold dark:bg-zinc-800 dark:rounded">削除</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -701,20 +779,31 @@ export default function Home() {
                           </div>
                           <div>
                             <span className="block text-[11px] font-bold text-slate-400 dark:text-white mb-1">使用する食材:</span>
-                            <div className="max-h-28 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-zinc-950 flex flex-wrap gap-1">
-                              {ingredients.map(ing => {
-                                const isChecked = editingMenuIngredients.includes(ing.id);
+                            <div className="max-h-36 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-zinc-950 space-y-2">
+                              {CATEGORIES.map(category => {
+                                const filtered = ingredients.filter(ing => ing.category === category);
+                                if (filtered.length === 0) return null;
                                 return (
-                                  <button
-                                    type="button" key={ing.id} onClick={() => handleToggleEditingMenuIngredient(ing.id)}
-                                    className={`px-2 py-0.5 rounded text-xs font-bold border transition ${
-                                      isChecked 
-                                        ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600 shadow-sm' 
-                                        : 'bg-slate-50 dark:bg-zinc-900 text-slate-500 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
-                                    }`}
-                                  >
-                                    {ing.name}
-                                  </button>
+                                  <div key={category} className="space-y-0.5">
+                                    <span className="block text-[10px] font-black text-indigo-600 dark:text-zinc-400">【{category}】</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {filtered.map(ing => {
+                                        const isChecked = editingMenuIngredients.includes(ing.id);
+                                        return (
+                                          <button
+                                            type="button" key={ing.id} onClick={() => handleToggleEditingMenuIngredient(ing.id)}
+                                            className={`px-2 py-0.5 rounded text-xs font-bold border transition ${
+                                              isChecked 
+                                                ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600 shadow-sm' 
+                                                : 'bg-slate-50 dark:bg-zinc-900 text-slate-500 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                                            }`}
+                                          >
+                                            {ing.name}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
                                 );
                               })}
                             </div>
@@ -756,7 +845,7 @@ export default function Home() {
       {showConfirm.show && showConfirm.menu && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-sm w-full shadow-xl border border-slate-100 dark:border-zinc-800 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">調理の確定</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">調理の確認</h3>
             <p className="text-sm text-slate-600 dark:text-white leading-relaxed">「<span className="font-bold text-indigo-600 dark:text-white">{showConfirm.menu.title}</span>」を作りましたか？</p>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowConfirm({ show: false, menu: null })} className="px-4 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl text-sm font-bold text-slate-600 dark:text-white">キャンセル</button>
