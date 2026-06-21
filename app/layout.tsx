@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: '晩ごはんメニュー管理アプリ 🍳', // <-- ここを好きな名称に変更
-  description: '晩ごはんのメニューをスマートに管理するアプリ',
+  title: '🍳今日の晩ごはん',
+  description: 'もう晩ごはんで悩まない',
 };
 
 export default function RootLayout({

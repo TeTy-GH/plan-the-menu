@@ -451,7 +451,7 @@ export default function Home() {
 
   return (
     // 🎨 配色は元のライト/ダーク切り替え構成（bg-slate-50 / dark:bg-zinc-950）に戻しています
-    <main className="min-h-screen bg-slate-50 dark:bg-[#0F0000] p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#120000] p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* ヘッダー & 画面切り替えタブ */}
@@ -565,7 +565,7 @@ export default function Home() {
                               )}
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>おすすめスコア: {Math.round(menu.score || 0)}点</span>
+                              <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>　おすすめスコア: {Math.round(menu.score || 0)}点</span>
                               {menu.cook_count && menu.cook_count > 0 ? (
                                 <button onClick={() => triggerCancelCookModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}>
                                  ↩ 調理取消
@@ -750,7 +750,7 @@ export default function Home() {
                                 return (
                                   <button
                                     type="button" key={ing.id} onClick={() => handleToggleMasterIngredientSelection(ing.id)}
-                                    className={`rounded border font-bold transition ${currentStyles.masterBtn} ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'}`}
+                                    className={`rounded border font-bold transition ${currentStyles.masterBtn} ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}
                                   >
                                     {ing.name}
                                   </button>
