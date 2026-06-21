@@ -12,39 +12,40 @@ type Category = typeof CATEGORIES[number];
 
 type FontSizeMode = 'small' | 'medium' | 'large';
 
+// 📐 ボタンや入力フォームの上下左右の余白（px, py, p）を一回りタイトに狭めました
 const FONT_SIZES = {
   small: {
     title: 'text-sm md:text-base',
-    btn: 'text-xs md:text-sm px-4 py-2',
+    btn: 'text-xs md:text-sm px-3 py-1.5',         // 左右4→3, 上下2→1.5
     score: 'text-[11px]',
     category: 'text-xs',
     sectionTitle: 'text-lg',
     badge: 'text-[9px]',
-    input: 'text-sm p-2',
+    input: 'text-sm p-1.5',                        // 2→1.5
     masterText: 'text-sm',
-    masterBtn: 'text-xs px-2 py-1',
+    masterBtn: 'text-xs px-1.5 py-0.5',           // 左右2→1.5, 上下1→0.5
   },
   medium: {
     title: 'text-lg md:text-xl font-black',
-    btn: 'text-base md:text-lg px-5 py-3',
+    btn: 'text-base md:text-lg px-4 py-2',         // 左右5→4, 上下3→2
     score: 'text-sm md:text-base',
     category: 'text-base md:text-lg',
     sectionTitle: 'text-2xl',
     badge: 'text-xs',
-    input: 'text-base p-3',
+    input: 'text-base p-2.5',                      // 3→2.5
     masterText: 'text-base md:text-lg font-bold',
-    masterBtn: 'text-sm px-3 py-2',
+    masterBtn: 'text-sm px-2.5 py-1.5',           // 左右3→2.5, 上下2→1.5
   },
   large: {
     title: 'text-2xl md:text-3xl font-black',
-    btn: 'text-xl md:text-2xl px-6 py-4',
+    btn: 'text-xl md:text-2xl px-5 py-3',         // 左右6→5, 上下4→3
     score: 'text-lg md:text-xl',
     category: 'text-xl md:text-2xl',
     sectionTitle: 'text-3xl',
     badge: 'text-sm',
-    input: 'text-xl p-4',
+    input: 'text-xl p-3.5',                        // 4→3.5
     masterText: 'text-xl md:text-2xl font-black',
-    masterBtn: 'text-base px-4 py-2.5',
+    masterBtn: 'text-base px-3.5 py-2',           // 左右4→3.5, 上下2.5→2
   }
 };
 
@@ -63,7 +64,6 @@ interface Menu {
   last_cooked_at?: string | null;
 }
 
-// 独自モーダル用の状態型定義
 interface ModalConfig {
   show: boolean;
   type: 'made' | 'cancel_cook' | 'delete_ingredient' | 'delete_menu' | null;
@@ -81,7 +81,6 @@ export default function Home() {
   const [recommendedMenus, setRecommendedMenus] = useState<Menu[]>([]);
   const [keepList, setKeepList] = useState<Menu[]>([]);
   
-  // 統合された確認モーダル管理（システムalert/confirmの代わり）
   const [modal, setModal] = useState<ModalConfig>({
     show: false,
     type: null,
@@ -199,16 +198,18 @@ export default function Home() {
     );
   };
 
-  const handleAddToKeep = (menu: Menu) => {
-    if (keepList.some(item => item.id === menu.id)) return;
-    setKeepList([...keepList, menu]);
+  const handleToggleKeep = (menu: Menu) => {
+    if (keepList.some(item => item.id === menu.id)) {
+      setKeepList(keepList.filter(item => item.id !== menu.id));
+    } else {
+      setKeepList([...keepList, menu]);
+    }
   };
 
   const handleRemoveFromKeep = (id: string) => {
     setKeepList(keepList.filter(item => item.id !== id));
   };
 
-  // 各種確認画面の呼び出し（モーダル化）
   const triggerMadeModal = (menu: Menu) => {
     setModal({
       show: true,
@@ -266,7 +267,6 @@ export default function Home() {
     });
   };
 
-  // モーダルで「はい」を押した時の統合実行ルーチン
   const handleModalConfirm = async () => {
     if (!modal.type || !modal.data) return;
 
@@ -450,7 +450,8 @@ export default function Home() {
   const inputGlobalStyle = "bg-gray-300 text-black font-black placeholder-zinc-500 border-slate-300";
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
+    // 🎨 配色は元のライト/ダーク切り替え構成（bg-slate-50 / dark:bg-zinc-950）に戻しています
+    <main className="min-h-screen bg-slate-50 dark:bg-[#0F0000] p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* ヘッダー & 画面切り替えタブ */}
@@ -461,17 +462,17 @@ export default function Home() {
           <div className="flex justify-center gap-2">
             <button
               onClick={() => setViewMode('app')}
-              className={`px-6 py-2.5 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
+              className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'app' 
                   ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
                   : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
               }`}
             >
-              📱 メニュー選び
+              📋 メニュー選び
             </button>
             <button
               onClick={() => { setViewMode('master'); setEditingId(null); }}
-              className={`px-6 py-2.5 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
+              className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'master' 
                   ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
                   : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
@@ -549,31 +550,44 @@ export default function Home() {
                   {loading ? (
                     <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
                   ) : recommendedMenus.length > 0 ? (
-                    recommendedMenus.map(menu => (
-                      <div key={menu.id} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition">
-                        <div className="flex flex-col gap-1 flex-1 pr-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
-                            {menu.ingredient_count === 0 && (
-                              <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
-                                ⚠️食材未登録
-                              </span>
-                            )}
+                    recommendedMenus.map(menu => {
+                      const isAlreadyKept = keepList.some(item => item.id === menu.id);
+
+                      return (
+                        <div key={menu.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition">
+                          <div className="flex flex-col gap-1 flex-1 pr-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
+                              {menu.ingredient_count === 0 && (
+                                <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
+                                  ⚠️食材未登録
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>おすすめスコア: {Math.round(menu.score || 0)}点</span>
+                              {menu.cook_count && menu.cook_count > 0 ? (
+                                <button onClick={() => triggerCancelCookModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}>
+                                 ↩ 調理取消
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>　おすすめスコア: {Math.round(menu.score || 0)}点</span>
-                            {menu.cook_count && menu.cook_count > 0 ? (
-                              <button onClick={() => triggerCancelCookModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}>
-                               　↩ 調理取消
-                              </button>
-                            ) : null}
-                          </div>
+                          
+                          {/* 📌 追加時の表記を「追加済み」に変更し、背景を食材選択アクティブ時と統一 */}
+                          <button 
+                            onClick={() => handleToggleKeep(menu)} 
+                            className={`rounded-lg font-bold transition-all shadow-sm shrink-0 border ${currentStyles.masterBtn} ${
+                              isAlreadyKept
+                                ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-white dark:text-black dark:border-white shadow-md scale-95' 
+                                : 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-white dark:hover:text-black'
+                            }`}
+                          >
+                            {isAlreadyKept ? '📌 追加済み' : '📌 候補'}
+                          </button>
                         </div>
-                        <button onClick={() => handleAddToKeep(menu)} className={`bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 dark:hover:bg-white dark:hover:text-black rounded-lg font-bold transition-all shadow-sm shrink-0 ${currentStyles.masterBtn}`}>
-                          📌 候補
-                        </button>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <p className={`text-slate-400 dark:text-white text-center py-8 ${currentStyles.masterText}`}>メニューが見つかりませんでした。</p>
                   )}
@@ -589,7 +603,7 @@ export default function Home() {
                 <div className="max-h-[550px] overflow-y-auto pr-2 space-y-2 flex-1">
                   {keepList.length > 0 ? (
                     keepList.map(menu => (
-                      <div key={menu.id} className="flex items-center justify-between p-3.5 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
+                      <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
                         <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>{menu.title}</span>
                         <div className="flex gap-2 shrink-0">
                           <button onClick={() => triggerMadeModal(menu)} className={`bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg font-bold shadow-sm transition ${currentStyles.masterBtn}`}>✅ 作った！</button>
@@ -653,10 +667,10 @@ export default function Home() {
                     <button
                       key={size}
                       onClick={() => handleFontSizeChange(size)}
-                      className={`flex-1 py-3 px-2 rounded-xl font-bold border transition-all ${currentStyles.masterText} ${
+                      className={`flex-1 py-2 px-3 rounded-xl font-bold border transition-all ${currentStyles.masterText} ${
                         fontSize === size
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-white dark:text-black dark:border-white'
-                          : 'bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100'
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-zinc-100 dark:text-black dark:border-white'
+                          : 'bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800'
                       }`}
                     >
                       {label}
@@ -709,7 +723,7 @@ export default function Home() {
                 </form>
               </div>
 
-              {/* メメニューマスタ登録 */}
+              {/* メニューマスタ登録 */}
               <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🍽️ メニューの追加</h2>
                 <form onSubmit={handleRegisterMenu} className="space-y-3">
@@ -820,12 +834,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* メメニューの一覧・編集・削除 */}
+              {/* メニューの一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>📋 メニューの編集・削除</h2>
                 <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
                   {recommendedMenus.map(menu => (
-                    <div key={menu.id} className="p-2.5 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
+                    <div key={menu.id} className="p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
                       {editingId === menu.id ? (
                         <div className="space-y-3">
                           <div className="flex gap-1.5">
@@ -899,7 +913,6 @@ export default function Home() {
       {/* 統合型アプリ内確認モーダル */}
       {modal.show && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          {/* 👇 ここの「max-w-sm」を「max-w-xl」に変更して横幅を広くしました */}
           <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-xl w-full shadow-xl border border-slate-100 dark:border-zinc-800 space-y-4">
             <h3 className={`${currentStyles.sectionTitle} font-bold text-slate-900 dark:text-white`}>
               {modal.title}
