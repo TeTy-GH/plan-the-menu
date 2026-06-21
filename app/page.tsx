@@ -22,6 +22,7 @@ interface Menu {
 }
 
 export default function Home() {
+
   // 画面モード切り替え ('app': メイン画面, 'master': マスタ管理画面)
   const [viewMode, setViewMode] = useState<'app' | 'master'>('app');
 
@@ -47,6 +48,40 @@ export default function Home() {
   // データ再取得用フラグ
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // ステート定義の場所に追加
+  const [shoppingList, setShoppingList] = useState<string[]>([]);
+
+  // 【新機能】調理候補メニューから材料を自動集計
+  useEffect(() => {
+  async function aggregateIngredients() {
+    if (keepList.length === 0) {
+      setShoppingList([]);
+      return;
+    }
+
+    const menuIds = keepList.map(m => m.id);
+    
+    // 中間テーブルから、現在キープしているメニューに関連する材料IDを全取得
+    const { data } = await supabase
+      .from('menu_ingredients')
+      .select('ingredient_id')
+      .in('menu_id', menuIds);
+
+    if (data) {
+      // 重複を除去した材料IDリストを作成
+      const uniqueIds = [...new Set(data.map(item => item.ingredient_id))];
+      
+      // IDから材料名へ変換
+      const names = ingredients
+        .filter(ing => uniqueIds.includes(ing.id))
+        .map(ing => ing.name);
+        
+      setShoppingList(names);
+    }
+  }
+  aggregateIngredients();
+  }, [keepList, ingredients]);
+  
   // 1. 材料一覧の取得
   useEffect(() => {
     async function fetchIngredients() {
@@ -530,6 +565,22 @@ export default function Home() {
                   ) : (
                     <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/30">
                       <p className="text-slate-400 text-xs md:text-sm">作りたいメニューを追加してみましょう</p>
+                    </div>
+                  )}
+                  {keepList.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-indigo-100">
+                      <h3 className="text-sm font-bold text-indigo-700 mb-2">🛒 必要な材料</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {shoppingList.length > 0 ? (
+                          shoppingList.map((name, index) => (
+                            <span key={index} className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-[11px] font-bold">
+                              {name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400">材料情報が未登録のメニューが含まれています</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
