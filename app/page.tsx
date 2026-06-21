@@ -12,40 +12,39 @@ type Category = typeof CATEGORIES[number];
 
 type FontSizeMode = 'small' | 'medium' | 'large';
 
-// 📐 ボタンや入力フォームの上下左右の余白（px, py, p）を一回りタイトに狭めました
 const FONT_SIZES = {
   small: {
     title: 'text-sm md:text-base',
-    btn: 'text-xs md:text-sm px-3 py-1.5',         // 左右4→3, 上下2→1.5
+    btn: 'text-xs md:text-sm px-3 py-1.5',
     score: 'text-[11px]',
     category: 'text-xs',
     sectionTitle: 'text-lg',
     badge: 'text-[9px]',
-    input: 'text-sm p-1.5',                        // 2→1.5
+    input: 'text-sm p-1.5',
     masterText: 'text-sm',
-    masterBtn: 'text-xs px-1.5 py-0.5',           // 左右2→1.5, 上下1→0.5
+    masterBtn: 'text-xs px-1.5 py-0.5',
   },
   medium: {
     title: 'text-lg md:text-xl font-black',
-    btn: 'text-base md:text-lg px-4 py-2',         // 左右5→4, 上下3→2
+    btn: 'text-base md:text-lg px-4 py-2',
     score: 'text-sm md:text-base',
     category: 'text-base md:text-lg',
     sectionTitle: 'text-2xl',
     badge: 'text-xs',
-    input: 'text-base p-2.5',                      // 3→2.5
+    input: 'text-base p-2.5',
     masterText: 'text-base md:text-lg font-bold',
-    masterBtn: 'text-sm px-2.5 py-1.5',           // 左右3→2.5, 上下2→1.5
+    masterBtn: 'text-sm px-2.5 py-1.5',
   },
   large: {
     title: 'text-2xl md:text-3xl font-black',
-    btn: 'text-xl md:text-2xl px-5 py-3',         // 左右6→5, 上下4→3
+    btn: 'text-xl md:text-2xl px-5 py-3',
     score: 'text-lg md:text-xl',
     category: 'text-xl md:text-2xl',
     sectionTitle: 'text-3xl',
     badge: 'text-sm',
-    input: 'text-xl p-3.5',                        // 4→3.5
+    input: 'text-xl p-3.5',
     masterText: 'text-xl md:text-2xl font-black',
-    masterBtn: 'text-base px-3.5 py-2',           // 左右4→3.5, 上下2.5→2
+    masterBtn: 'text-base px-3.5 py-2',
   }
 };
 
@@ -62,11 +61,14 @@ interface Menu {
   cook_count?: number;
   ingredient_count?: number;
   last_cooked_at?: string | null;
+  prev_cooked_at?: string | null;
+  is_cancelled?: boolean;
 }
 
 interface ModalConfig {
   show: boolean;
-  type: 'made' | 'cancel_cook' | 'delete_ingredient' | 'delete_menu' | null;
+  // 🟢 info（情報表示用）を追加
+  type: 'made' | 'cancel_cook' | 'delete_ingredient' | 'delete_menu' | 'info' | null;
   title: string;
   message: string;
   data: any;
@@ -280,13 +282,31 @@ export default function Home() {
 
       const currentCount = currentMenu?.cook_count || 0;
       const currentLast = currentMenu?.last_cooked_at || null;
+      const today = new Date().toISOString().split('T')[0];
 
+      // 🟢 変更箇所：すでに今日作った場合の処理をモーダルに置き換え
+      if (currentLast === today) {
+        handleRemoveFromKeep(menu.id);
+        
+        // infoタイプのモーダルを表示して、関数をここで終了（return）する
+        setModal({
+          show: true,
+          type: 'info',
+          title: 'お知らせ',
+          message: `「${menu.title}」は本日すでに調理済みとして記録されています。\n重複を防ぐためカウントの更新をスキップしました。`,
+          data: null
+        });
+        return; 
+      }
+
+      // 未記録の場合のみ更新
       const { error } = await supabase
         .from('menus')
         .update({ 
           cook_count: currentCount + 1,
           prev_cooked_at: currentLast,
-          last_cooked_at: new Date().toISOString().split('T')[0]
+          last_cooked_at: today,
+          is_cancelled: false
         })
         .eq('id', menu.id);
 
@@ -450,8 +470,7 @@ export default function Home() {
   const inputGlobalStyle = "bg-gray-300 text-black font-black placeholder-zinc-500 border-slate-300";
 
   return (
-    // 🎨 配色は元のライト/ダーク切り替え構成（bg-slate-50 / dark:bg-zinc-950）に戻しています
-    <main className="min-h-screen bg-slate-50 dark:bg-[#120000] p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
+    <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* ヘッダー & 画面切り替えタブ */}
@@ -565,8 +584,8 @@ export default function Home() {
                               )}
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>　おすすめスコア: {Math.round(menu.score || 0)}点</span>
-                              {menu.cook_count && menu.cook_count > 0 ? (
+                              <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}> おすすめスコア: {Math.round(menu.score || 0)}点</span>
+                              {menu.cook_count && menu.cook_count > 0 && !menu.is_cancelled ? (
                                 <button onClick={() => triggerCancelCookModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}>
                                  ↩ 調理取消
                                 </button>
@@ -574,7 +593,6 @@ export default function Home() {
                             </div>
                           </div>
                           
-                          {/* 📌 追加時の表記を「追加済み」に変更し、背景を食材選択アクティブ時と統一 */}
                           <button 
                             onClick={() => handleToggleKeep(menu)} 
                             className={`rounded-lg font-bold transition-all shadow-sm shrink-0 border ${currentStyles.masterBtn} ${
@@ -669,7 +687,7 @@ export default function Home() {
                       onClick={() => handleFontSizeChange(size)}
                       className={`flex-1 py-2 px-3 rounded-xl font-bold border transition-all ${currentStyles.masterText} ${
                         fontSize === size
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-zinc-100 dark:text-black dark:border-white'
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-white dark:text-black dark:border-white'
                           : 'bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800'
                       }`}
                     >
@@ -921,20 +939,32 @@ export default function Home() {
               {modal.message}
             </p>
             <div className="flex justify-end gap-2 pt-2">
-              <button 
-                onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
-                className={`bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-bold text-slate-600 dark:text-white ${currentStyles.masterBtn}`}
-              >
-                キャンセル
-              </button>
-              <button 
-                onClick={handleModalConfirm} 
-                className={`text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
-                  modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
-                }`}
-              >
-                はい
-              </button>
+              {/* 🟢 変更箇所：infoタイプの場合は「確認」ボタン1つだけを表示 */}
+              {modal.type === 'info' ? (
+                <button 
+                  onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
+                  className={`bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn}`}
+                >
+                  確認
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
+                    className={`bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-bold text-slate-600 dark:text-white ${currentStyles.masterBtn}`}
+                  >
+                    キャンセル
+                  </button>
+                  <button 
+                    onClick={handleModalConfirm} 
+                    className={`text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
+                      modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
+                    }`}
+                  >
+                    はい
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
