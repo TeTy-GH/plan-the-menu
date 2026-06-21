@@ -467,7 +467,7 @@ export default function Home() {
             {/* 材料選択エリア */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2">🛒 使う材料を選ぶ</h2>
+                <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2">🛒 使いたい材料</h2>
                 {selectedIngredients.length > 0 && (
                   <button onClick={() => setSelectedIngredients([])} className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold underline">
                     選択取消
