@@ -517,7 +517,7 @@ export default function Home() {
               </div>
               
               {ingredients.length > 0 ? (
-                <div className="max-h-72 overflow-y-auto pr-2 border border-dashed border-slate-100 dark:border-zinc-800 p-3 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-4">
+                <div className="pb-10 max-h-72 overflow-y-auto pr-2 p-4 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-inner">
                   {CATEGORIES.map(category => {
                     const filteredIngredients = ingredients.filter(ing => ing.category === category);
                     if (filteredIngredients.length === 0) return null;
@@ -565,7 +565,7 @@ export default function Home() {
                   <span className={`bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{recommendedMenus.length}件</span>
                 </div>
 
-                <div className="max-h-[550px] overflow-y-auto pr-2 space-y-2 flex-1">
+                <div className="pb-10 overflow-y-auto max-h-96 p-4 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
                   {loading ? (
                     <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
                   ) : recommendedMenus.length > 0 ? (
