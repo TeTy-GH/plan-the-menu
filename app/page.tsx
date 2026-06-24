@@ -470,7 +470,7 @@ export default function Home() {
   const inputGlobalStyle = "bg-gray-300 text-black font-black placeholder-zinc-500 border-slate-300";
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-zinc-950 p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
+    <main className="min-h-screen bg-slate-50 dark:bg-[#140010] p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* ヘッダー & 画面切り替えタブ */}
@@ -505,8 +505,8 @@ export default function Home() {
         {/* ----------------- 画面1: メインアプリ ----------------- */}
         {viewMode === 'app' && (
           <>
-            {/* 食材選択エリア */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+            {/* 使いたい食材 */}
+            <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>🥦 使いたい食材</h2>
                 {selectedIngredients.length > 0 && (
@@ -517,7 +517,7 @@ export default function Home() {
               </div>
               
               {ingredients.length > 0 ? (
-                <div className="pb-10 max-h-72 overflow-y-auto pr-2 p-4 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-inner">
+                <div className="pb-10 max-h-72 overflow-y-auto pr-2 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner">
                   {CATEGORIES.map(category => {
                     const filteredIngredients = ingredients.filter(ing => ing.category === category);
                     if (filteredIngredients.length === 0) return null;
@@ -537,7 +537,7 @@ export default function Home() {
                                 className={`rounded-xl border font-bold transition-all duration-200 ${currentStyles.btn} ${
                                   isSelected 
                                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
-                                    : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                                    : 'bg-white dark:bg-zinc-950 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
                                 }`}
                               >
                                 {ing.name}
@@ -557,7 +557,7 @@ export default function Home() {
             {/* メインカラム */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
-              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-zinc-800 pb-3">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '💡 マッチしたおすすめ'}
@@ -565,7 +565,7 @@ export default function Home() {
                   <span className={`bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{recommendedMenus.length}件</span>
                 </div>
 
-                <div className="pb-10 overflow-y-auto max-h-96 p-4 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
+                <div className="pb-10 overflow-y-auto max-h-150 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
                   {loading ? (
                     <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
                   ) : recommendedMenus.length > 0 ? (
@@ -612,13 +612,13 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* キープ中 */}
-              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              {/* 調理候補 */}
+              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-zinc-800 pb-3">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>📌 調理候補</h2>
                   <span className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-700 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{keepList.length}件</span>
                 </div>
-                <div className="max-h-[550px] overflow-y-auto pr-2 space-y-2 flex-1">
+                <div className="pb-10 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
                   {keepList.length > 0 ? (
                     keepList.map(menu => (
                       <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
@@ -630,7 +630,7 @@ export default function Home() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/30 dark:bg-zinc-950">
+                    <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/30 dark:bg-stone-900">
                       <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>作りたいメニューを追加してみましょう</p>
                     </div>
                   )}
@@ -639,7 +639,7 @@ export default function Home() {
                       <h3 className={`font-bold text-indigo-700 dark:text-white ${currentStyles.masterText}`}>🛒 必要な食材</h3>
                       
                       {shoppingList.length > 0 ? (
-                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <div className="space-y-2 pr-1">
                           {CATEGORIES.map(category => {
                             const filteredList = shoppingList.filter(ing => ing.category === category);
                             if (filteredList.length === 0) return null;
@@ -651,7 +651,7 @@ export default function Home() {
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {filteredList.map(ing => (
-                                    <span key={ing.id} className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-800 dark:text-white rounded-lg font-bold ${currentStyles.btn}`}>
+                                    <span key={ing.id} className={`bg-indigo-100 dark:bg-zinc-950 text-indigo-800 dark:text-white rounded-lg font-bold border border-slate-200 dark:border-zinc-700 ${currentStyles.btn}`}>
                                       {ing.name}
                                     </span>
                                   ))}
@@ -676,7 +676,7 @@ export default function Home() {
           <div className="space-y-8">
             
             {/* 文字サイズ変更 設定カード */}
-            <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+            <div className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🔎 画面の文字サイズ設定</h2>
               <div className="flex flex-wrap gap-2 max-w-xl">
                 {(['small', 'medium', 'large'] as const).map((size) => {
@@ -688,7 +688,7 @@ export default function Home() {
                       className={`flex-1 py-2 px-3 rounded-xl font-bold border transition-all ${currentStyles.masterText} ${
                         fontSize === size
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-white dark:text-black dark:border-white'
-                          : 'bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                          : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800'
                       }`}
                     >
                       {label}
@@ -701,7 +701,7 @@ export default function Home() {
             {/* 登録フォームエリア */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* 食材単体のマスタ登録 */}
-              <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+              <div className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🥦 食材の追加</h2>
                 <form onSubmit={handleRegisterIngredient} className="space-y-3">
                   <input
@@ -742,7 +742,7 @@ export default function Home() {
               </div>
 
               {/* メニューマスタ登録 */}
-              <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
+              <div className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🍽️ メニューの追加</h2>
                 <form onSubmit={handleRegisterMenu} className="space-y-3">
                   <input
@@ -755,7 +755,7 @@ export default function Home() {
                   />
                   <div>
                     <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材を選択:</span>
-                    <div className="max-h-48 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-zinc-950 space-y-3">
+                    <div className="max-h-48 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-3">
                       {CATEGORIES.map(category => {
                         const filtered = ingredients.filter(ing => ing.category === category);
                         if (filtered.length === 0) return null;
@@ -768,7 +768,7 @@ export default function Home() {
                                 return (
                                   <button
                                     type="button" key={ing.id} onClick={() => handleToggleMasterIngredientSelection(ing.id)}
-                                    className={`rounded border font-bold transition ${currentStyles.masterBtn} ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}
+                                    className={`rounded border font-bold transition ${currentStyles.masterBtn} ${isTarget ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'}`}
                                   >
                                     {ing.name}
                                   </button>
@@ -798,9 +798,9 @@ export default function Home() {
             {/* 下段：既存データの編集・削除リストエリア */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 食材の一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>🥦 食材の編集・削除</h2>
-                <div className="max-h-96 overflow-y-auto pr-2 space-y-3">
+                <div className="max-h-120 overflow-y-auto pr-2 space-y-3">
                   {CATEGORIES.map(category => {
                     const filtered = ingredients.filter(ing => ing.category === category);
                     if (filtered.length === 0) return null;
@@ -809,18 +809,18 @@ export default function Home() {
                         <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.category}`}>【{category}】</span>
                         <div className="space-y-1">
                           {filtered.map(ing => (
-                            <div key={ing.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 rounded-lg">
+                            <div key={ing.id} className="p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
                               {editingId === ing.id ? (
-                                <div className="flex flex-col gap-2 w-full bg-white dark:bg-zinc-900 p-2 rounded-lg border dark:border-zinc-800">
+                                <div className="flex flex-col gap-2">
                                   <input
                                     type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
-                                    className={`w-full border rounded focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
+                                    className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                                   />
                                   <div className="flex items-center justify-between gap-2">
                                     <select
                                       value={editingCategory}
                                       onChange={(e) => setEditingCategory(e.target.value as Category)}
-                                      className={`border rounded focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles.input}`}
+                                      className={`border rounded-xl focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles.input}`}
                                     >
                                       {CATEGORIES.map(cat => (
                                         <option key={cat} value={cat} className="font-black">
@@ -835,13 +835,15 @@ export default function Home() {
                                   </div>
                                 </div>
                               ) : (
-                                <>
-                                  <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{ing.name}</span>
-                                  <div className="flex gap-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{ing.name}</span>
+                                  </div>
+                                  <div className="flex gap-1 shrink-0">
                                     <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); setEditingCategory(ing.category); }} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
                                     <button onClick={() => triggerDeleteIngredientModal(ing.id, ing.name)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                                   </div>
-                                </>
+                                </div>
                               )}
                             </div>
                           ))}
@@ -853,9 +855,9 @@ export default function Home() {
               </div>
 
               {/* メニューの一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>📋 メニューの編集・削除</h2>
-                <div className="max-h-96 overflow-y-auto pr-2 space-y-2">
+                <div className="max-h-120 overflow-y-auto pr-2 space-y-2">
                   {recommendedMenus.map(menu => (
                     <div key={menu.id} className="p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
                       {editingId === menu.id ? (
@@ -868,7 +870,7 @@ export default function Home() {
                           </div>
                           <div>
                             <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材:</span>
-                            <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-zinc-950 space-y-2">
+                            <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-stone-900 space-y-2">
                               {CATEGORIES.map(category => {
                                 const filtered = ingredients.filter(ing => ing.category === category);
                                 if (filtered.length === 0) return null;
@@ -884,7 +886,7 @@ export default function Home() {
                                             className={`rounded font-bold border transition ${currentStyles.masterBtn} ${
                                               isChecked 
                                                 ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600 shadow-sm' 
-                                                : 'bg-slate-50 dark:bg-zinc-900 text-slate-500 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                                                : 'bg-slate-50 dark:bg-zinc-950 text-slate-500 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
                                             }`}
                                           >
                                             {ing.name}
@@ -897,14 +899,14 @@ export default function Home() {
                               })}
                             </div>
                           </div>
-                          <div className="flex justify-end gap-2 pt-2 border-t border-dashed border-slate-200 dark:border-zinc-800">
+                          <div className="flex justify-end gap-2 pb-2">
                             <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                             <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="">
                             <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{menu.title}</span>
                             {menu.ingredient_count === 0 && (
                               <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold ${currentStyles.badge}`}>
