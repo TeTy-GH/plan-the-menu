@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -73,6 +73,28 @@ interface ModalConfig {
   message: string;
   data: any;
 }
+
+interface MenuListItemProps { 
+  menu: any; 
+  isEditing: boolean;
+} 
+
+function BoundaryPin({ isEditing }: { isEditing: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      const timer = setTimeout(() => {
+        ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 160);
+      return () => clearTimeout(timer);
+    }
+  }, [isEditing]);
+
+  return <div ref={ref} className="h-0 w-full" />;
+}
+
+
 
 export default function Home() {
   const [viewMode, setViewMode] = useState<'main' | 'master' | 'setting'>('main');
@@ -517,7 +539,7 @@ export default function Home() {
                   : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
               }`}
             >
-              📋 メンテ
+              ✏️ 登録・編集
             </button>
             <button
               onClick={() => { setViewMode('setting'); setEditingId(null); }}
@@ -839,8 +861,14 @@ export default function Home() {
                         <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.category}`}>【{category}】</span>
                         <div className="space-y-1">
                           {filtered.map(ing => (
-                            <div key={ing.id} className="p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
-                              {editingId === ing.id ? (
+                            <div key={ing.id} className="relative p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
+                              <div className={`
+                                transition-all duration-500 ease-in-out overflow-hidden
+                                ${editingId === ing.id 
+                                  ? 'opacity-100 max-h-[500px] translate-y-0 pointer-events-auto' 
+                                  : 'opacity-0 max-h-0 -translate-y-2 pointer-events-none'
+                                }
+                              `}>
                                 <div className="flex flex-col gap-2">
                                   <input
                                     type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
@@ -864,7 +892,14 @@ export default function Home() {
                                     </div>
                                   </div>
                                 </div>
-                              ) : (
+                              </div>
+                              <div className={`
+                                transition-all duration-500 ease-in-out
+                                ${editingId === ing.id 
+                                  ? 'opacity-0 pointer-events-none' 
+                                  : 'opacity-100 pointer-events-auto'
+                                }
+                              `}>
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2 flex-1">
                                     <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{ing.name}</span>
@@ -874,7 +909,8 @@ export default function Home() {
                                     <button onClick={() => triggerDeleteIngredientModal(ing.id, ing.name)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                                   </div>
                                 </div>
-                              )}
+                              </div>
+                              <BoundaryPin isEditing={editingId === ing.id} />
                             </div>
                           ))}
                         </div>
@@ -888,34 +924,52 @@ export default function Home() {
               <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>📋 メニューの編集・削除</h2>
                 <div className="max-h-120 overflow-y-auto pr-2 space-y-2">
-                  {recommendedMenus.map(menu => (
-                    <div key={menu.id} className="p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
-                      {editingId === menu.id ? (
-                        <div className="space-y-3">
+
+
+
+
+                  {recommendedMenus.map((menu) => {
+                    
+                    const isEditing = editingId === menu.id;
+
+                    return (
+                      <div key={menu.id} className="relative p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
+
+                        <div className={`
+                          transition-all duration-500 ease-in-out overflow-hidden
+                          ${isEditing 
+                            ? 'opacity-100 max-h-[1000px] translate-y-0 pointer-events-auto' 
+                            : 'opacity-0 max-h-0 -translate-y-2 pointer-events-none'
+                          }
+                        `}>
                           <div className="flex gap-1.5">
                             <input
-                              type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)}
+                              type="text"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
                               className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                             />
                           </div>
                           <div>
                             <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材:</span>
                             <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-stone-900 space-y-2">
-                              {CATEGORIES.map(category => {
-                                const filtered = ingredients.filter(ing => ing.category === category);
+                              {CATEGORIES.map((category) => {
+                                const filtered = ingredients.filter((ing) => ing.category === category);
                                 if (filtered.length === 0) return null;
                                 return (
                                   <div key={category} className="space-y-0.5">
                                     <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.score}`}>【{category}】</span>
                                     <div className="flex flex-wrap gap-1">
-                                      {filtered.map(ing => {
+                                      {filtered.map((ing) => {
                                         const isChecked = editingMenuIngredients.includes(ing.id);
                                         return (
                                           <button
-                                            type="button" key={ing.id} onClick={() => handleToggleEditingMenuIngredient(ing.id)}
+                                            type="button"
+                                            key={ing.id}
+                                            onClick={() => handleToggleEditingMenuIngredient(ing.id)}
                                             className={`rounded font-bold border transition ${currentStyles.masterBtn} ${
-                                              isChecked 
-                                                ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600 shadow-sm' 
+                                              isChecked
+                                                ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600 shadow-sm'
                                                 : 'bg-slate-50 dark:bg-zinc-950 text-slate-500 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
                                             }`}
                                           >
@@ -933,25 +987,34 @@ export default function Home() {
                             <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                             <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
                           </div>
+                          <BoundaryPin isEditing={isEditing} />
                         </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <div className="">
-                            <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{menu.title}</span>
-                            {menu.ingredient_count === 0 && (
-                              <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold ${currentStyles.badge}`}>
-                                ⚠️食材未登録
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <button onClick={() => handleStartEditMenu(menu)} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
-                            <button onClick={() => triggerDeleteMenuModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
+                        <div className={`
+                          transition-all duration-500 ease-in-out overflow-hidden
+                          ${isEditing 
+                            ? 'opacity-0 max-h-0 -translate-y-2 pointer-events-none' 
+                            : 'opacity-100 max-h-[200px] translate-y-0 pointer-events-auto'
+                          }
+                        `}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{menu.title}</span>
+                              {menu.ingredient_count === 0 && (
+                                <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold ${currentStyles.badge}`}>
+                                  ⚠️食材未登録
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                              <button onClick={() => handleStartEditMenu(menu)} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
+                              <button onClick={() => triggerDeleteMenuModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
+                            </div>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
+
                 </div>
               </div>
             </div>
