@@ -852,7 +852,7 @@ export default function Home() {
               {/* 食材の一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>🥦 食材の編集・削除</h2>
-                <div className="max-h-120 overflow-y-auto pr-2 space-y-3">
+                <div className="max-h-100 overflow-y-auto pr-2 space-y-3">
                   {CATEGORIES.map(category => {
                     const filtered = ingredients.filter(ing => ing.category === category);
                     if (filtered.length === 0) return null;
@@ -923,7 +923,7 @@ export default function Home() {
               {/* メニューの一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>📋 メニューの編集・削除</h2>
-                <div className="max-h-120 overflow-y-auto pr-2 space-y-2">
+                <div className="max-h-100 overflow-y-auto pr-2 space-y-2">
 
 
 
