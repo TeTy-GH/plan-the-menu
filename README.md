@@ -34,3 +34,21 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+# 開発メモ（自分用）
+
+## 起動手順
+1. `wsl --shutdown` (必要に応じて)
+2. `supabase start`
+3. `supabase functions serve --env-file ./supabase/.env.local`
+4. `npm run dev`
+
+## テスト用コマンド
+```bash
+curl.exe -i --location --request POST "http://127.0.0.1:54321/functions/v1/suggest-menu" --header "Content-Type: application/json" --data '{\"ingredients\": [\"鶏肉\", \"キャベツ\"]}'
+
+Supabese Studio(CLI)
+http://127.0.0.1:54323
+
+##お掃除コマンド
+Remove-Item -Path .next -Recurse -Force

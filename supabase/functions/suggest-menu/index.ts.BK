@@ -1,0 +1,49 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { GoogleGenerativeAI } from "npm:@google/generative-ai"
+import { createClient } from 'npm:@supabase/supabase-js'
+
+Deno.serve(async (req) => {
+  try {
+    console.log("リクエストを受信しました"); // 👈 ログ追加
+
+    const { ingredient_ids } = await req.json();
+    console.log("受け取ったIDリスト:", ingredient_ids); // 👈 ログ追加
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+    );
+
+    const { data: ingredients, error } = await supabase
+      .from('ingredients')
+      .select('name')
+      .in('id', ingredient_ids);
+
+    if (error) throw error;
+    console.log("DBから取得した食材:", ingredients); // 👈 ログ追加
+
+    const ingredientNames = ingredients.map(i => i.name).join(", ");
+    
+    const genAI = new GoogleGenerativeAI(Deno.env.get("GEMINI_API_KEY") || "");
+    //const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    //const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    //const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const prompt = `食材として「${ingredientNames}」を使いたい。これを使った晩ごはんの献立を1つ提案して。返答は「〇〇はいかがですか？」という形式で短く。`;
+
+    console.log("Geminiにリクエスト送信..."); // 👈 ログ追加
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const menuText = response.text().trim();
+    console.log("Geminiの回答:", menuText); // 👈 ログ追加
+
+    return new Response(
+      JSON.stringify({ suggestedMenu: menuText }),
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+  } catch (err) {
+    console.error("エラー詳細:", err); // 👈 エラーをターミナルに出力
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+});

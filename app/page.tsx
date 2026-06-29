@@ -2,10 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import AiMenuSuggester from '@/components/AiMenuSuggester';
+
+console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log("Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)
 
 const CATEGORIES = ['肉・魚・卵', '野菜', 'その他'] as const;
 type Category = typeof CATEGORIES[number];
@@ -57,6 +63,7 @@ interface Ingredient {
 interface Menu {
   id: string;
   title: string;
+  suggestedMenu?: string;
   score?: number;
   cook_count?: number;
   ingredient_count?: number;
@@ -130,6 +137,10 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [shoppingList, setShoppingList] = useState<Ingredient[]>([]);
   
+  const [aiMenu, setAiMenu] = useState<Menu | null>(null);
+  //const [aiMenuTitle, setAiMenuTitle] = useState("");
+  const [aiMenuTitle, setAiMenuTitle] = useState<string | null>(null); // 最初は null にする
+
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
     if (savedSize && ['small', 'medium', 'large'].includes(savedSize)) {
@@ -617,12 +628,20 @@ export default function Home() {
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '💡 マッチしたおすすめ'}
                   </h2>
                   {/*<span className={`bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{recommendedMenus.length}件</span>*/}
-<div className="flex bg-slate-100 rounded-lg p-0.5 text-stone-900">
-    <button onClick={() => setSortMode('score')} className={`px-2 py-1 rounded text-xs ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>おすすめ</button>
-    <button onClick={() => setSortMode('history')} className={`px-2 py-1 rounded text-xs ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>調理履歴</button>
-  </div>
+                  <div className="flex bg-slate-100 rounded-lg p-0.5 text-stone-900">
+                    <button onClick={() => setSortMode('score')} className={`px-2 py-1 rounded text-xs ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>おすすめ</button>
+                    <button onClick={() => setSortMode('history')} className={`px-2 py-1 rounded text-xs ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>調理履歴</button>
+                  </div>
                 </div>
-
+                <AiMenuSuggester 
+                  selectedIngredients={selectedIngredients}
+                  aiMenuTitle={aiMenuTitle} // 🟢 追加：現在の提案内容を子に渡す
+                  onSuggestionReceived={(newMenu) => {
+                    console.log("親で受信！:", newMenu.title);
+                    setAiMenuTitle(newMenu.title);
+                  }}
+                  currentStyles={currentStyles}
+                />
                 <div className="pb-10 overflow-y-auto max-h-150 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
                   {loading ? (
                     <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
