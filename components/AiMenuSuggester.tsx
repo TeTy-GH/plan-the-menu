@@ -9,24 +9,22 @@ interface Menu {
 
 interface AiMenuSuggesterProps {
   selectedIngredients: string[];
-  aiMenuTitle: string | null; // 🟢 追加：親から現在の提案を受け取る
+  aiMenuTitle: string | null; // 親から現在の提案を受け取る
   onSuggestionReceived: (menu: Menu) => void;
   currentStyles: any;
 }
 
 export default function AiMenuSuggester({ 
   selectedIngredients, 
-  aiMenuTitle, // 🟢 追加
+  aiMenuTitle,
   onSuggestionReceived,
   currentStyles
 }: AiMenuSuggesterProps) {
   const [loading, setLoading] = useState(false);
 
-  // 共通のfetch関数
+  // 共通のfetch関数（最新の環境変数ベースのURL）
   const fetchMenu = async (mode: 'init' | 'force', ingredients: string[]) => {
-
     const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    
     const response = await fetch(`${baseUrl}/functions/v1/suggest-menu`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -38,11 +36,18 @@ export default function AiMenuSuggester({
   // 初期表示用
   useEffect(() => {
     const initMenu = async () => {
-      const res = await fetchMenu('init', []);
-      const data = await res.json();
+      setLoading(true); // 🟢 1. 初期ロード開始時にローディングをtrueにする
+      try {
+        const res = await fetchMenu('init', []);
+        const data = await res.json();
 
-      if (data.suggestedMenu) {
-        onSuggestionReceived({ id: 'init', title: data.suggestedMenu });
+        if (data.suggestedMenu) {
+          onSuggestionReceived({ id: 'init', title: data.suggestedMenu });
+        }
+      } catch (err) {
+        console.error("初期データの取得に失敗しました:", err);
+      } finally {
+        setLoading(false); // 🟢 2. 完了（またはエラー）したらローディングを解除する
       }
     };
     initMenu();
@@ -83,7 +88,12 @@ export default function AiMenuSuggester({
         {loading ? (
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs md:text-sm font-medium animate-pulse">
             <span className="animate-spin">✨</span>
-            <span>Geminiが冷蔵庫の食材から考えています...</span>
+            {/* 🟢 3. 食材選択の有無でローディング中の文言を出し分けます */}
+            <span>
+              {selectedIngredients.length > 0 
+                ? "Geminiが冷蔵庫の食材から考えています..." 
+                : "Geminiが今日の献立を準備しています..."}
+            </span>
           </div>
         ) : aiMenuTitle !== null ? (
           <div className="text-center space-y-1">
