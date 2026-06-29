@@ -24,7 +24,10 @@ export default function AiMenuSuggester({
 
   // 共通のfetch関数
   const fetchMenu = async (mode: 'init' | 'force', ingredients: string[]) => {
-    const response = await fetch('http://127.0.0.1:54321/functions/v1/suggest-menu', {
+
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    const response = await fetch(`${baseUrl}/functions/v1/suggest-menu`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode, ingredient_ids: ingredients })
