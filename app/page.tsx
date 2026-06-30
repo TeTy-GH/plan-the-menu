@@ -1114,8 +1114,10 @@ export default function Home() {
           <div className="space-y-8">
             
             {/* 文字サイズ変更 設定カード */}
-            <div className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
-              <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🔎 文字サイズ</h2>
+            <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+              <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>
+                🔎 文字サイズ
+              </h2>
               <div className="flex flex-wrap gap-3 max-w-md">
                 {(['small', 'medium', 'large'] as const).map((size) => {
                   const label = size === 'small' ? '小（標準）' : size === 'medium' ? '中（1.5倍）' : '大（2倍）';
