@@ -385,12 +385,34 @@ export default function Home() {
 
   const handleRegisterIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newIngredientName.trim()) return;
+    const trimmedName = newIngredientName.trim(); // 共通で使えるように変数化
+    if (!trimmedName) return;
 
     setMasterLoading(true);
+
+    // 🟢 1. 食材名の重複チェック
+    const { data: existingIng } = await supabase
+      .from('ingredients')
+      .select('id')
+      .eq('name', trimmedName)
+      .maybeSingle(); // データが0件でもエラーにしないメソッド
+
+    if (existingIng) {
+      setMasterLoading(false);
+      setModal({
+        show: true,
+        type: 'info',
+        title: '重複エラー',
+        message: `食材「${trimmedName}」はすでに登録されています。`,
+        data: null
+      });
+      return; // ここで処理を終了し、インサートを行わない
+    }
+
+    // 重複がなければ登録
     const { error } = await supabase
       .from('ingredients')
-      .insert([{ name: newIngredientName.trim(), category: newIngredientCategory }]);
+      .insert([{ name: trimmedName, category: newIngredientCategory }]);
 
     if (!error) {
       setNewIngredientName('');
@@ -402,12 +424,34 @@ export default function Home() {
 
   const handleRegisterMenu = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMenuTitle.trim()) return;
+    const trimmedTitle = newMenuTitle.trim(); // 共通で使えるように変数化
+    if (!trimmedTitle) return;
 
     setMasterLoading(true);
+
+    // 🟢 2. メニュー名の重複チェック
+    const { data: existingMenu } = await supabase
+      .from('menus')
+      .select('id')
+      .eq('title', trimmedTitle)
+      .maybeSingle();
+
+    if (existingMenu) {
+      setMasterLoading(false);
+      setModal({
+        show: true,
+        type: 'info',
+        title: '重複エラー',
+        message: `メニュー「${trimmedTitle}」はすでに登録されています。`,
+        data: null
+      });
+      return; // ここで処理を終了し、インサートを行わない
+    }
+
+    // 重複がなければ登録
     const { data: menuData, error: menuError } = await supabase
       .from('menus')
-      .insert([{ title: newMenuTitle.trim(), cook_count: 0 }])
+      .insert([{ title: trimmedTitle, cook_count: 0 }])
       .select('id')
       .single();
 
@@ -429,7 +473,7 @@ export default function Home() {
     setRefreshTrigger(prev => prev + 1);
     setMasterLoading(false);
   };
-
+  
   const handleUpdateIngredient = async (id: string) => {
     if (!editingText.trim()) return;
     const { error } = await supabase
