@@ -93,7 +93,7 @@ function BoundaryPin({ isEditing }: { isEditing: boolean }) {
     if (isEditing) {
       const timer = setTimeout(() => {
         ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 160);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [isEditing]);
@@ -616,7 +616,7 @@ export default function Home() {
         {viewMode === 'main' && (
           <>
             {/* 使いたい食材 */}
-            <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+            <div className="bg-white/70 dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>🥦 使いたい食材</h2>
                 {selectedIngredients.length > 0 && (
@@ -627,15 +627,15 @@ export default function Home() {
               </div>
               
               {ingredients.length > 0 ? (
-                <div className="pb-10 max-h-72 overflow-y-auto pr-2 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner">
+                <div className="pb-10 max-h-72 overflow-y-auto pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
                   {CATEGORIES.map(category => {
                     const filteredIngredients = ingredients.filter(ing => ing.category === category);
                     if (filteredIngredients.length === 0) return null;
                     
                     return (
                       <div key={category} className="space-y-1.5">
-                        <span className={`block font-black text-indigo-600 dark:text-zinc-400 tracking-wider ${currentStyles.category}`}>
-                          【{category}】
+                        <span className={`pt-4 block font-black text-indigo-600 dark:text-yellow-600 tracking-wider ${currentStyles.category}`}>
+                          ー {category} －
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {filteredIngredients.map(ing => {
@@ -667,7 +667,7 @@ export default function Home() {
             {/* メインカラム */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
-              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '💡 マッチしたおすすめ'}
@@ -687,7 +687,7 @@ export default function Home() {
                   }}
                   currentStyles={currentStyles}
                 />
-                <div className="pb-10 overflow-y-auto max-h-150 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
+                <div className="pb-10 overflow-y-auto max-h-130 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner space-y-3">
                   {loading ? (
                     <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
                   ) : sortedMenus.length > 0 ? (
@@ -695,9 +695,9 @@ export default function Home() {
                       const isAlreadyKept = keepList.some(item => item.id === menu.id);
 
                       return (
-                        <div key={menu.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition">
-                          <div className="flex flex-col gap-1 flex-1 pr-2">
-                            <div className="flex flex-wrap items-center gap-2">
+                        <div key={menu.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition">
+                          <div className="flex flex-col gap-1 flex-1 pr-2 pl-2">
+                            <div className="flex flex-wrap items-center gap-3">
                               <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
                               {menu.ingredient_count === 0 && (
                                 <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
@@ -750,12 +750,14 @@ export default function Home() {
               </div>
 
               {/* 調理候補 */}
-              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-zinc-800 pb-3">
-                  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>📌 調理候補</h2>
+                  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
+                    📌 調理候補
+                  </h2>
                   <span className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-700 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{keepList.length}件</span>
                 </div>
-                <div className="pb-10 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-4">
+                <div className="pb-10 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
                   {keepList.length > 0 ? (
                     keepList.map(menu => (
                       <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
@@ -773,7 +775,9 @@ export default function Home() {
                   )}
                   {keepList.length > 0 && (
                     <div className="mt-6 pt-4 border-t border-indigo-100 dark:border-zinc-800 space-y-3">
-                      <h3 className={`font-bold text-indigo-700 dark:text-white ${currentStyles.masterText}`}>🛒 必要な食材</h3>
+                      <h3 className={`font-bold text-indigo-700 dark:text-white ${currentStyles.masterText}`}>
+                        🛒 必要な食材
+                      </h3>
                       
                       {shoppingList.length > 0 ? (
                         <div className="space-y-2 pr-1">
@@ -783,8 +787,8 @@ export default function Home() {
 
                             return (
                               <div key={category} className="space-y-1">
-                                <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.category}`}>
-                                  【{category}】
+                                <span className={`block font-black text-indigo-600 dark:text-yellow-600 pt-1 pb-1 ${currentStyles.category}`}>
+                                  ー {category} ー
                                 </span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {filteredList.map(ing => (
@@ -817,8 +821,10 @@ export default function Home() {
             {/* 登録フォームエリア */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* 食材単体のマスタ登録 */}
-              <div className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🥦 食材の追加</h2>
+              <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>
+                  🥦 食材の追加
+                </h2>
                 <form onSubmit={handleRegisterIngredient} className="space-y-3">
                   <input
                     type="text"
@@ -858,8 +864,10 @@ export default function Home() {
               </div>
 
               {/* メニューマスタ登録 */}
-              <div className="bg-white dark:bg-zinc-950 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>🍽️ メニューの追加</h2>
+              <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>
+                  🍽️ メニューの追加
+                </h2>
                 <form onSubmit={handleRegisterMenu} className="space-y-3">
                   <input
                     type="text"
@@ -870,14 +878,18 @@ export default function Home() {
                     disabled={masterLoading}
                   />
                   <div>
-                    <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材を選択:</span>
-                    <div className="max-h-48 overflow-y-auto border border-slate-100 dark:border-zinc-800 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-3">
+                    <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+                      使用する食材を選択:
+                    </span>
+                    <div className="pb-10 max-h-48 overflow-y-auto border border-slate-100 dark:border-stone-100/10 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-2">
                       {CATEGORIES.map(category => {
                         const filtered = ingredients.filter(ing => ing.category === category);
                         if (filtered.length === 0) return null;
                         return (
                           <div key={category} className="space-y-1">
-                            <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.score}`}>【{category}】</span>
+                            <span className={`block font-black text-indigo-600 dark:text-yellow-600 ${currentStyles.score}`}>
+                              ー {category} ー
+                            </span>
                             <div className="flex flex-wrap gap-1.5">
                               {filtered.map(ing => {
                                 const isTarget = newMenuIngredients.includes(ing.id);
@@ -914,15 +926,19 @@ export default function Home() {
             {/* 下段：既存データの編集・削除リストエリア */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 食材の一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>🥦 食材の編集・削除</h2>
+              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
+                  🥦 食材の編集・削除
+                </h2>
                 <div className="max-h-100 overflow-y-auto pr-2 space-y-3">
                   {CATEGORIES.map(category => {
                     const filtered = ingredients.filter(ing => ing.category === category);
                     if (filtered.length === 0) return null;
                     return (
                       <div key={category} className="space-y-1">
-                        <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.category}`}>【{category}】</span>
+                        <span className={`block font-black text-indigo-600 dark:text-yellow-600 ${currentStyles.category}`}>
+                          ー {category} ー
+                        </span>
                         <div className="space-y-1">
                           {filtered.map(ing => (
                             <div key={ing.id} className="relative p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
@@ -985,8 +1001,10 @@ export default function Home() {
               </div>
 
               {/* メニューの一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>📋 メニューの編集・削除</h2>
+              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
+                  📋 メニューの編集・削除
+                </h2>
                 <div className="max-h-100 overflow-y-auto pr-2 space-y-2">
 
 
@@ -1015,14 +1033,18 @@ export default function Home() {
                             />
                           </div>
                           <div>
-                            <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>使用する食材:</span>
-                            <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-zinc-800 p-2 rounded-xl bg-white dark:bg-stone-900 space-y-2">
+                            <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+                              使用する食材:
+                            </span>
+                            <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-stone-100/10 p-2 rounded-xl bg-white dark:bg-stone-900 space-y-2">
                               {CATEGORIES.map((category) => {
                                 const filtered = ingredients.filter((ing) => ing.category === category);
                                 if (filtered.length === 0) return null;
                                 return (
                                   <div key={category} className="space-y-0.5">
-                                    <span className={`block font-black text-indigo-600 dark:text-zinc-400 ${currentStyles.score}`}>【{category}】</span>
+                                    <span className={`block font-black text-indigo-600 dark:text-yellow-600 ${currentStyles.score}`}>
+                                      ー {category} ー
+                                    </span>
                                     <div className="flex flex-wrap gap-1">
                                       {filtered.map((ing) => {
                                         const isChecked = editingMenuIngredients.includes(ing.id);
