@@ -581,7 +581,7 @@ export default function Home() {
           <div className="flex justify-center gap-2">
             <button
               onClick={() => setViewMode('main')}
-              className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
+              className={`flex items-center justify-center whitespace-nowrap px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'main' 
                   ? 'bg-white text-indigo-900 shadow-lg scale-105' 
                   : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
@@ -591,7 +591,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setViewMode('master')}
-              className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
+              className={`flex items-center justify-center whitespace-nowrap px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'master' 
                   ? 'bg-white text-indigo-900 shadow-lg scale-105' 
                   : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
@@ -601,7 +601,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => { setViewMode('setting'); setEditingId(null); }}
-              className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
+              className={`flex items-center justify-center whitespace-nowrap px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'setting' 
                   ? 'bg-white text-indigo-900 shadow-lg scale-105' 
                   : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
