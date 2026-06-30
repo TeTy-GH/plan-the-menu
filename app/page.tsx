@@ -402,7 +402,7 @@ export default function Home() {
       setModal({
         show: true,
         type: 'info',
-        title: '重複エラー',
+        title: '登録エラー',
         message: `食材「${trimmedName}」はすでに登録されています。`,
         data: null
       });
@@ -441,7 +441,7 @@ export default function Home() {
       setModal({
         show: true,
         type: 'info',
-        title: '重複エラー',
+        title: '登録エラー',
         message: `メニュー「${trimmedTitle}」はすでに登録されています。`,
         data: null
       });
@@ -473,7 +473,7 @@ export default function Home() {
     setRefreshTrigger(prev => prev + 1);
     setMasterLoading(false);
   };
-  
+
   const handleUpdateIngredient = async (id: string) => {
     if (!editingText.trim()) return;
     const { error } = await supabase
@@ -566,13 +566,16 @@ export default function Home() {
     }
   });
 
+// 🟢 変更点1: 背景を夕焼けをイメージした美しいグラデーション（または画像）に変更
+  // ※ もし画像にしたい場合は bg-gradient-to-b ... の代わりに bg-[url('/sunset.jpg')] bg-cover bg-center bg-no-repeat bg-fixed にします
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-[#140010] p-4 md:p-8 text-slate-800 dark:text-white transition-colors">
+    <main className="min-h-screen bg-gradient-to-b from-[#1b1c4b] via-[#913b7b] via-[#d05066] to-[#f59e0b] p-4 md:p-8 text-slate-800 dark:text-white transition-all bg-fixed">
       <div className="max-w-5xl mx-auto space-y-6">
         
         {/* ヘッダー & 画面切り替えタブ */}
-        <div className="text-center py-2 space-y-4">
-          <h1 className="text-3xl font-extrabold text-indigo-600 dark:text-white tracking-tight flex items-center justify-center gap-2">
+        {/* 🟢 変更点2: 背景がカラフルになったので、ヘッダーの文字を白（または高コントラスト）に固定して見やすく */}
+        <div className="text-center py-2 space-y-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-2">
             🍳 今日の晩ごはん
           </h1>
           <div className="flex justify-center gap-2">
@@ -580,8 +583,8 @@ export default function Home() {
               onClick={() => setViewMode('main')}
               className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'main' 
-                  ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                  ? 'bg-white text-indigo-900 shadow-lg scale-105' 
+                  : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
               }`}
             >
               📋 メニュー選び
@@ -590,8 +593,8 @@ export default function Home() {
               onClick={() => setViewMode('master')}
               className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'master' 
-                  ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                  ? 'bg-white text-indigo-900 shadow-lg scale-105' 
+                  : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
               }`}
             >
               ✏️ 登録・編集
@@ -600,16 +603,14 @@ export default function Home() {
               onClick={() => { setViewMode('setting'); setEditingId(null); }}
               className={`px-5 py-2 rounded-xl font-bold transition-all ${currentStyles.masterText} ${
                 viewMode === 'setting' 
-                  ? 'bg-indigo-600 text-white shadow-md dark:bg-zinc-100 dark:text-black' 
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                  ? 'bg-white text-indigo-900 shadow-lg scale-105' 
+                  : 'bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30'
               }`}
             >
               ⚙️ 設定
             </button>
           </div>
         </div>
-
-
 
         {/* ----------------- 画面1: メインアプリ ----------------- */}
         {viewMode === 'main' && (

@@ -37,3 +37,28 @@ body {
   background: #2C3E50; /* バー自体の色（仕様書のメインカラー） */ 
   border-radius: 4px; 
 } 
+
+/* 各エリアのスクロールバーのカスタマイズ（暗い・明るい両対応） */
+.overflow-y-auto {
+  /* Firefox用の設定 */
+  scrollbar-width: auto;
+  scrollbar-color: rgb(156 163 175) transparent; /* バーの色 / トラックの色 */
+}
+
+/* Chrome, Safari, Edge（iPhone含む）用の設定 */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 10px; /* スクロールバーを太くする */
+  display: block; /* 強制表示 */
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05); /* トラックの背景（うっすらグレー） */
+  border-radius: 9999px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.5); /* スレートグレーで視認性を高く */
+  border-radius: 9999px;
+  border: 2px solid transparent; /* 隙間を作って綺麗に見せる */
+  background-clip: padding-box;
+}
