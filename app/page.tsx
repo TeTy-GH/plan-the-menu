@@ -674,8 +674,8 @@ export default function Home() {
                   </h2>
                   {/*<span className={`bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{recommendedMenus.length}件</span>*/}
                   <div className="flex bg-slate-100 rounded-lg p-0.5 text-stone-900">
-                    <button onClick={() => setSortMode('score')} className={`px-2 py-1 rounded text-xs ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>おすすめ</button>
-                    <button onClick={() => setSortMode('history')} className={`px-2 py-1 rounded text-xs ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>調理履歴</button>
+                    <button onClick={() => setSortMode('score')} className={`px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>おすすめ</button>
+                    <button onClick={() => setSortMode('history')} className={`px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : ''}`}>調理履歴</button>
                   </div>
                 </div>
                 <AiMenuSuggester 
