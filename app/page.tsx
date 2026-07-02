@@ -153,6 +153,7 @@ export default function Home() {
   const [selectedMenuType, setSelectedMenuType] = useState<MenuType>('main');
   const [selectedManageMenuType, setSelectedManageMenuType] = useState<MenuType>('main');
 
+  
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
     if (savedSize && ['small', 'medium', 'large'].includes(savedSize)) {
