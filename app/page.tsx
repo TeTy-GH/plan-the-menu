@@ -13,8 +13,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)
 
-const CATEGORIES = ['肉・魚・卵', '野菜', 'その他'] as const;
-type Category = typeof CATEGORIES[number];
+const INGREDIENT_CATEGORIES = ['肉・魚・卵', '野菜', 'その他'] as const;
+type IngredientCategory = typeof INGREDIENT_CATEGORIES[number];
 
 type FontSizeMode = 'small' | 'medium' | 'large';
 
@@ -57,7 +57,7 @@ const FONT_SIZES = {
 interface Ingredient {
   id: string; 
   name: string;
-  category: Category;
+  category: IngredientCategory;
 }
 
 interface Menu {
@@ -126,12 +126,12 @@ export default function Home() {
   const [newMenuTitle, setNewMenuTitle] = useState('');
   const [newMenuIngredients, setNewMenuIngredients] = useState<string[]>([]);
   const [newIngredientName, setNewIngredientName] = useState('');
-  const [newIngredientCategory, setNewIngredientCategory] = useState<Category>('その他');
+  const [newIngredientCategory, setNewIngredientCategory] = useState<IngredientCategory>('その他');
   const [masterLoading, setMasterLoading] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
-  const [editingCategory, setEditingCategory] = useState<Category>('その他');
+  const [editingIngredientCategory, setEditingIngredientCategory] = useState<IngredientCategory>('その他');
   const [editingMenuIngredients, setEditingMenuIngredients] = useState<string[]>([]);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -184,7 +184,7 @@ export default function Home() {
       if (!error && data) {
         const formattedData = data.map(item => ({
           ...item,
-          category: (CATEGORIES.includes(item.category as any) ? item.category : 'その他') as Category
+          category: (INGREDIENT_CATEGORIES.includes(item.category as any) ? item.category : 'その他') as IngredientCategory
         }));
         setIngredients(formattedData);
       }
@@ -478,7 +478,7 @@ export default function Home() {
     if (!editingText.trim()) return;
     const { error } = await supabase
       .from('ingredients')
-      .update({ name: editingText.trim(), category: editingCategory })
+      .update({ name: editingText.trim(), category: editingIngredientCategory })
       .eq('id', id);
 
     if (!error) {
@@ -628,7 +628,7 @@ export default function Home() {
               
               {ingredients.length > 0 ? (
                 <div className="pb-10 max-h-72 overflow-y-auto pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
-                  {CATEGORIES.map(category => {
+                  {INGREDIENT_CATEGORIES.map(category => {
                     const filteredIngredients = ingredients.filter(ing => ing.category === category);
                     if (filteredIngredients.length === 0) return null;
                     
@@ -781,7 +781,7 @@ export default function Home() {
                       
                       {shoppingList.length > 0 ? (
                         <div className="space-y-2 pr-1">
-                          {CATEGORIES.map(category => {
+                          {INGREDIENT_CATEGORIES.map(category => {
                             const filteredList = shoppingList.filter(ing => ing.category === category);
                             if (filteredList.length === 0) return null;
 
@@ -838,11 +838,11 @@ export default function Home() {
                     <label className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>分類：</label>
                     <select
                       value={newIngredientCategory}
-                      onChange={(e) => setNewIngredientCategory(e.target.value as Category)}
+                      onChange={(e) => setNewIngredientCategory(e.target.value as IngredientCategory)}
                       className={`w-full border rounded-xl focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles.input}`}
                       disabled={masterLoading}
                     >
-                      {CATEGORIES.map(cat => (
+                      {INGREDIENT_CATEGORIES.map(cat => (
                         <option key={cat} value={cat} className="font-black">
                           {cat}
                         </option>
@@ -882,7 +882,7 @@ export default function Home() {
                       使用する食材を選択:
                     </span>
                     <div className="pb-10 max-h-48 overflow-y-auto border border-slate-100 dark:border-stone-100/10 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-2">
-                      {CATEGORIES.map(category => {
+                      {INGREDIENT_CATEGORIES.map(category => {
                         const filtered = ingredients.filter(ing => ing.category === category);
                         if (filtered.length === 0) return null;
                         return (
@@ -931,7 +931,7 @@ export default function Home() {
                   🥦 食材の編集・削除
                 </h2>
                 <div className="max-h-100 overflow-y-auto pr-2 space-y-3">
-                  {CATEGORIES.map(category => {
+                  {INGREDIENT_CATEGORIES.map(category => {
                     const filtered = ingredients.filter(ing => ing.category === category);
                     if (filtered.length === 0) return null;
                     return (
@@ -956,11 +956,11 @@ export default function Home() {
                                   />
                                   <div className="flex items-center justify-between gap-2">
                                     <select
-                                      value={editingCategory}
-                                      onChange={(e) => setEditingCategory(e.target.value as Category)}
+                                      value={editingIngredientCategory}
+                                      onChange={(e) => setEditingIngredientCategory(e.target.value as IngredientCategory)}
                                       className={`border rounded-xl focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles.input}`}
                                     >
-                                      {CATEGORIES.map(cat => (
+                                      {INGREDIENT_CATEGORIES.map(cat => (
                                         <option key={cat} value={cat} className="font-black">
                                           {cat}
                                         </option>
@@ -985,7 +985,7 @@ export default function Home() {
                                     <span className={`font-bold text-slate-700 dark:text-white ${currentStyles.masterText}`}>{ing.name}</span>
                                   </div>
                                   <div className="flex gap-1 shrink-0">
-                                    <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); setEditingCategory(ing.category); }} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
+                                    <button onClick={() => { setEditingId(ing.id); setEditingText(ing.name); setEditingIngredientCategory(ing.category); }} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
                                     <button onClick={() => triggerDeleteIngredientModal(ing.id, ing.name)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                                   </div>
                                 </div>
@@ -1037,7 +1037,7 @@ export default function Home() {
                               使用する食材:
                             </span>
                             <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-stone-100/10 p-2 rounded-xl bg-white dark:bg-stone-900 space-y-2">
-                              {CATEGORIES.map((category) => {
+                              {INGREDIENT_CATEGORIES.map((category) => {
                                 const filtered = ingredients.filter((ing) => ing.category === category);
                                 if (filtered.length === 0) return null;
                                 return (
