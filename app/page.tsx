@@ -153,7 +153,9 @@ export default function Home() {
   const [selectedMenuType, setSelectedMenuType] = useState<MenuType>('main');
   const [selectedManageMenuType, setSelectedManageMenuType] = useState<MenuType>('main');
 
-  
+  const aiSuggesterRef = useRef<{ handleAiSuggest: () => void }>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
     if (savedSize && ['small', 'medium', 'large'].includes(savedSize)) {
@@ -705,22 +707,34 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
               <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-                  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
-                    {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
-                  </h2>
-                  
-                </div>
-                
-                <AiMenuSuggester 
-                  selectedIngredients={selectedIngredients}
-                  aiMenuTitle={aiMenuTitle} 
-                  onSuggestionReceived={(newMenu) => {
-                    console.log("親で受信！:", newMenu.title);
-                    setAiMenuTitle(newMenu.title);
-                  }}
-                  currentStyles={currentStyles}
-                />
+<div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
+    {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
+  </h2>
+  
+  {/* 🟢 再提案ボタンを「おすすめメニュー」の右に右寄せで配置 */}
+  {aiMenuTitle !== null && (
+    <button
+      onClick={() => aiSuggesterRef.current?.handleAiSuggest()}
+      disabled={aiLoading}
+      className={`${currentStyles.masterText} py-1.5 px-3.5 rounded-xl text-xs md:text-sm font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+    >
+      {aiLoading ? '🔄 考案中...' : '🔄 再提案'}
+    </button>
+  )}
+</div>
+
+<AiMenuSuggester 
+  ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
+  selectedIngredients={selectedIngredients}
+  aiMenuTitle={aiMenuTitle} 
+  onSuggestionReceived={(newMenu) => {
+    console.log("親で受信！:", newMenu.title);
+    setAiMenuTitle(newMenu.title);
+  }}
+  currentStyles={currentStyles}
+  onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
+/>
                   <div className="flex items-center gap-5">
                     {/* 🟢 追加：メニュータイプ（主菜・副菜）切り替えボタン */}
                     <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
