@@ -935,7 +935,7 @@ export default function Home() {
                   {/* 🟢 追加：新規メニューのタイプ選択 */}
                   <div>
                     <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
-                      メニューのカテゴリ:
+                      メニューのカテゴリ：
                     </span>
                     <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white w-fit">
                       <button
@@ -957,7 +957,7 @@ export default function Home() {
 
                   <div>
                     <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
-                      使用する食材を選択:
+                      使用する食材を選択：
                     </span>
                     <div className="pb-10 max-h-48 overflow-y-auto border border-slate-100 dark:border-stone-100/10 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-2">
                       {INGREDIENT_CATEGORIES.map(category => {
@@ -1130,7 +1130,9 @@ export default function Home() {
                               
                               {/* 編集中のメニュータイプ切り替えトグル */}
                               <div className="flex items-center gap-2">
-                                <span className={`font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>カテゴリ:</span>
+                                <span className={`font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
+                                  カテゴリ：
+                                </span>
                                 <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
                                   <button
                                     type="button"
@@ -1152,7 +1154,7 @@ export default function Home() {
 
                             <div>
                               <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
-                                使用する食材:
+                                使用する食材：
                               </span>
                               <div className="max-h-48 overflow-y-auto border border-slate-200/60 dark:border-stone-100/10 p-2 rounded-xl bg-white dark:bg-stone-900 space-y-2">
                                 {INGREDIENT_CATEGORIES.map((category) => {
