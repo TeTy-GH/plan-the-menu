@@ -604,7 +604,7 @@ export default function Home() {
             className="w-full h-full object-cover"
           />
           {/* 暗いフィルター（文字の視認性を保つためのオーバーレイ） */}
-          <div className="absolute inset-0 bg-white/30 dark:bg-zinc-950/50 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-white/30 dark:bg-zinc-950/40 backdrop-blur-[2px]" />
         </div>
     
       <div className="max-w-5xl mx-auto space-y-6">
