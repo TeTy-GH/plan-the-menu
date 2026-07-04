@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import AiMenuSuggester from '@/components/AiMenuSuggester';
+import ReactMarkdown from 'react-markdown';
 
 console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log("Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -73,6 +74,7 @@ interface Menu {
   last_cooked_at?: string | null;
   prev_cooked_at?: string | null;
   is_cancelled?: boolean;
+  memo: string;
 }
 
 interface ModalConfig {
@@ -137,12 +139,14 @@ export default function Home() {
   const [newIngredientCategory, setNewIngredientCategory] = useState<IngredientCategory>('その他');
   const [newMenuType, setNewMenuType] = useState<MenuType>('main');
   const [masterLoading, setMasterLoading] = useState(false);
+  const [newMenuMemo, setNewMenuMemo] = useState('');
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [editingIngredientCategory, setEditingIngredientCategory] = useState<IngredientCategory>('その他');
   const [editingMenuIngredients, setEditingMenuIngredients] = useState<string[]>([]);
   const [editingMenuType, setEditingMenuType] = useState<MenuType>('main');
+  const [editingMemo, setEditingMemo] = useState('');
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [shoppingList, setShoppingList] = useState<Ingredient[]>([]);
@@ -466,7 +470,14 @@ export default function Home() {
     // 重複がなければ登録
     const { data: menuData, error: menuError } = await supabase
       .from('menus')
-      .insert([{ title: trimmedTitle, cook_count: 0, menu_type: newMenuType }])
+      .insert([
+        { 
+          title: trimmedTitle, 
+          cook_count: 0, 
+          menu_type: newMenuType, 
+          memo: newMenuMemo 
+        }
+      ])
       .select('id')
       .single();
 
@@ -484,6 +495,7 @@ export default function Home() {
     }
 
     setNewMenuTitle('');
+    setNewMenuMemo('');
     setNewMenuIngredients([]);
     setNewMenuType('main');
     setRefreshTrigger(prev => prev + 1);
@@ -506,7 +518,8 @@ export default function Home() {
   const handleStartEditMenu = async (menu: Menu) => {
     setEditingId(menu.id);
     setEditingText(menu.title);
-    
+    setEditingMemo(menu.memo || '');
+
     setEditingMenuType(menu.menu_type || 'main');
 
     const { data, error } = await supabase
@@ -535,7 +548,8 @@ export default function Home() {
       .from('menus')
       .update({ 
         title: editingText.trim(),
-        menu_type: editingMenuType 
+        menu_type: editingMenuType,
+        memo: editingMemo 
       })
       .eq('id', menuId);
 
@@ -707,34 +721,34 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
               <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
-<div className="flex justify-between items-center mb-4 gap-2">
-  <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
-    {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
-  </h2>
-  
-  {/* 🟢 再提案ボタンを「おすすめメニュー」の右に右寄せで配置 */}
-  {aiMenuTitle !== null && (
-    <button
-      onClick={() => aiSuggesterRef.current?.handleAiSuggest()}
-      disabled={aiLoading}
-      className={`${currentStyles.masterText} py-[0.4em] px-[0.8em] rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
-    >
-      {aiLoading ? '🔄 考案中...' : '🔄 再提案'}
-    </button>
-  )}
-</div>
+                <div className="flex justify-between items-center mb-4 gap-2">
+                  <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
+                    {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
+                  </h2>
+                  
+                  {/* 🟢 再提案ボタンを「おすすめメニュー」の右に右寄せで配置 */}
+                  {aiMenuTitle !== null && (
+                    <button
+                      onClick={() => aiSuggesterRef.current?.handleAiSuggest()}
+                      disabled={aiLoading}
+                      className={`${currentStyles.masterText} py-[0.4em] px-[0.8em] rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
+                    >
+                      {aiLoading ? '🔄 考案中...' : '🔄 再提案'}
+                    </button>
+                  )}
+                </div>
 
-<AiMenuSuggester 
-  ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
-  selectedIngredients={selectedIngredients}
-  aiMenuTitle={aiMenuTitle} 
-  onSuggestionReceived={(newMenu) => {
-    console.log("親で受信！:", newMenu.title);
-    setAiMenuTitle(newMenu.title);
-  }}
-  currentStyles={currentStyles}
-  onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
-/>
+                <AiMenuSuggester 
+                  ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
+                  selectedIngredients={selectedIngredients}
+                  aiMenuTitle={aiMenuTitle} 
+                  onSuggestionReceived={(newMenu) => {
+                    console.log("親で受信！:", newMenu.title);
+                    setAiMenuTitle(newMenu.title);
+                  }}
+                  currentStyles={currentStyles}
+                  onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
+                />
                   <div className="flex items-center gap-5">
                     {/* 🟢 追加：メニュータイプ（主菜・副菜）切り替えボタン */}
                     <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
@@ -1000,6 +1014,19 @@ export default function Home() {
                       })}
                     </div>
                   </div>
+<div>
+  <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+    レシピ・メモ（Markdown対応）：
+  </span>
+  <textarea
+    value={newMenuMemo}
+    onChange={(e) => setNewMenuMemo(e.target.value)}
+    placeholder="材料や作り方、コツなどを自由にメモ..."
+    rows={4}
+    className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none ${inputGlobalStyle} ${currentStyles.input}`}
+    disabled={masterLoading}
+  />
+</div>
                   <button 
                     type="submit" 
                     disabled={masterLoading || !newMenuTitle.trim()} 
@@ -1203,6 +1230,18 @@ export default function Home() {
                                 })}
                               </div>
                             </div>
+<div className="mt-3">
+  <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+    レシピ・メモ（Markdown対応）：
+  </span>
+  <textarea
+    value={editingMemo}
+    onChange={(e) => setEditingMemo(e.target.value)}
+    placeholder="レシピのメモ..."
+    rows={4}
+    className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none ${inputGlobalStyle} ${currentStyles.input}`}
+  />
+</div>
                             <div className="flex justify-end gap-2 pb-2 mt-2">
                               <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                               <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
@@ -1232,6 +1271,14 @@ export default function Home() {
                                 <button onClick={() => handleStartEditMenu(menu)} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
                                 <button onClick={() => triggerDeleteMenuModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                               </div>
+{menu.memo && (
+  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-sm text-slate-600 dark:text-slate-300">
+    {/* 🟢 追加：Markdownの見た目を整えるための囲みdiv */}
+    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed分">
+      <ReactMarkdown>{menu.memo}</ReactMarkdown>
+    </div>
+  </div>
+)}
                             </div>
                           </div>
                         </div>
