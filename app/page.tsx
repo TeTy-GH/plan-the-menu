@@ -522,6 +522,7 @@ useEffect(() => {
 
     setNewMenuTitle('');
     setNewMenuMemo('');
+    setNewMemoTab('write');
     setNewMenuIngredients([]);
     setNewMenuType('main');
     setRefreshTrigger(prev => prev + 1);
@@ -1044,18 +1045,17 @@ useEffect(() => {
   {/* 🔥 タイトルと「入力/プレビュー」切り替えボタンのヘッダー */}
   <div className="flex justify-between items-center mb-2">
     <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
-      レシピ・メモ（新規追加）：
+      レシピ・メモ：
     </span>
     
-    {/* タブ切り替えボタン */}
-    <div className="flex gap-1 bg-slate-100 dark:bg-zinc-850 p-1 rounded-lg text-xs">
+    <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
       <button
         type="button"
-        onClick={() => setNewMemoTab('write')} // 🟢 新規用のタブStateを指定（例: newMemoTab）
-        className={`px-3 py-1 rounded-md font-medium transition ${
-          newMemoTab === 'write'
+        onClick={() => setNewMemoTab('write')}
+        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
+          editingMemoTab === 'write'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
       >
         編集
@@ -1063,10 +1063,10 @@ useEffect(() => {
       <button
         type="button"
         onClick={() => setNewMemoTab('preview')}
-        className={`px-3 py-1 rounded-md font-medium transition ${
-          newMemoTab === 'preview'
+        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
+          editingMemoTab === 'preview'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
       >
         プレビュー
