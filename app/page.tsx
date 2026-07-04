@@ -1133,9 +1133,9 @@ useEffect(() => {
 
 
             {/* 下段：既存データの編集・削除リストエリア */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               {/* 食材の一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
                   🥦 食材の編集・削除
                 </h2>
@@ -1210,7 +1210,7 @@ useEffect(() => {
               </div>
 
               {/* メニューの一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-3">
                 {/* タイトルと切り替えボタンを横並びにするコンテナ */}
                 <div className="flex justify-between items-center mb-3 border-b dark:border-zinc-800 pb-2 flex-wrap gap-2">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
