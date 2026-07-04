@@ -160,6 +160,20 @@ export default function Home() {
   const aiSuggesterRef = useRef<{ handleAiSuggest: () => void }>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+// 🟢 追加：編集モードに入った瞬間（初期表示）と、文字が変わった瞬間に、高さを全開にする
+useEffect(() => {
+  if (editingId) {
+    // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
+    setTimeout(() => {
+      const textarea = document.getElementById('editing-memo-textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      }
+    }, 50);
+  }
+}, [editingId, editingMemo]);
+
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
     if (savedSize && ['small', 'medium', 'large'].includes(savedSize)) {
@@ -1244,6 +1258,7 @@ export default function Home() {
     レシピ・メモ：
   </span>
   <textarea
+    id="editing-memo-textarea"
     value={editingMemo} // または newMenuMemo
     onChange={(e) => {
       setEditingMemo(e.target.value); // または setNewMenuMemo
@@ -1255,14 +1270,6 @@ export default function Home() {
     rows={3} // 最初は3行分くらいの高さ
     className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
   />
-  {menu.memo && (
-  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-sm text-slate-600 dark:text-slate-300">
-    {/* 🟢 追加：Markdownの見た目を整えるための囲みdiv */}
-    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed分">
-      <ReactMarkdown>{menu.memo}</ReactMarkdown>
-    </div>
-  </div>
-)}   
 </div>
                             <div className="flex justify-end gap-2 pb-2 mt-2">
                               <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
