@@ -163,8 +163,8 @@ export default function Home() {
 
 // 🟢 追加：編集モードに入った瞬間（初期表示）と、文字が変わった瞬間に、高さを全開にする
 useEffect(() => {
-  // 🟢 memoTab === 'write'（編集画面）のときだけ実行する条件を追加
-  if (editingId && memoTab === 'write') {
+  if (editingId) {
+    // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
     setTimeout(() => {
       const textarea = document.getElementById('editing-memo-textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -173,7 +173,7 @@ useEffect(() => {
       }
     }, 50);
   }
-}, [editingId, editingMemo, memoTab]);
+}, [editingId, editingMemo]);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
@@ -1030,74 +1030,21 @@ useEffect(() => {
                     </div>
                   </div>
 <div>
-  <div className="flex justify-between items-center mb-2">
-    <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
-      レシピ・メモ：
-    </span>
-    
-    <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
-      <button
-        type="button"
-        onClick={() => setMemoTab('write')}
-        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'write'
-            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-        }`}
-      >
-        編集
-      </button>
-      <button
-        type="button"
-        onClick={() => setMemoTab('preview')}
-        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'preview'
-            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-        }`}
-      >
-        プレビュー
-      </button>
-    </div>
-  </div>
-
-  {memoTab === 'write' ? (
-    <textarea
-      id="new-memo-textarea"
-      value={editingMemo}
-      onChange={(e) => {
-        setEditingMemo(e.target.value);
-        e.target.style.height = 'auto';
-        e.target.style.height = `${e.target.scrollHeight}px`;
-      }}
-      placeholder="材料や作り方、コツなどを自由にメモ（Markdownが使えます）..."
-      rows={3}
-      className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
-    />
-  ) : (
-<div className={`w-full p-4 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
-  {editingMemo ? (
-    <div className="max-w-none text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-      <ReactMarkdown
-        components={{
-          // 🟢 各MarkdownタグがHTMLに変換される瞬間に、Tailwindのクラスを強制注入する魔法
-          ul: ({ ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
-          ol: ({ ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
-          li: ({ ...props }) => <li className="text-slate-700 dark:text-slate-200" {...props} />,
-          h2: ({ ...props }) => <h2 className="text-base font-bold text-slate-800 dark:text-zinc-100 mt-4 mb-2 border-b border-slate-100 dark:border-zinc-850 pb-0.5" {...props} />,
-          h3: ({ ...props }) => <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-200 mt-3 mb-1" {...props} />,
-          blockquote: ({ ...props }) => <blockquote className="border-l-4 border-blue-500 bg-slate-100 dark:bg-zinc-800/60 p-3 my-3 rounded-r-lg font-medium italic text-slate-700 dark:text-slate-200" {...props} />,
-          hr: () => <hr className="my-4 border-slate-200 dark:border-zinc-800" />,
-        }}
-      >
-        {editingMemo}
-      </ReactMarkdown>
-    </div>
-  ) : (
-    <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
-  )}
-</div>
-  )}
+  <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+    レシピ・メモ：
+  </span>
+<textarea
+  value={editingMemo} // または newMenuMemo
+  onChange={(e) => {
+    setEditingMemo(e.target.value); // または setNewMenuMemo
+    // 👇 入力された文字の高さに合わせて、枠の重さを一瞬で書き換える魔法の2行
+    e.target.style.height = 'auto';
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  }}
+  placeholder="材料や作り方、コツなどを自由にメモ..."
+  rows={3} // 最初は3行分くらいの高さ
+  className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
+/>
 </div>
                   <button 
                     type="submit" 
@@ -1113,14 +1060,10 @@ useEffect(() => {
                 </form>
               </div>
             </div>
-
-
-
-
             {/* 下段：既存データの編集・削除リストエリア */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 食材の一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
                   🥦 食材の編集・削除
                 </h2>
@@ -1357,28 +1300,15 @@ useEffect(() => {
       className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
     />
   ) : (
-<div className={`w-full p-4 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
-  {editingMemo ? (
-    <div className="max-w-none text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-      <ReactMarkdown
-        components={{
-          // 🟢 各MarkdownタグがHTMLに変換される瞬間に、Tailwindのクラスを強制注入する魔法
-          ul: ({ ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
-          ol: ({ ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
-          li: ({ ...props }) => <li className="text-slate-700 dark:text-slate-200" {...props} />,
-          h2: ({ ...props }) => <h2 className="text-base font-bold text-slate-800 dark:text-zinc-100 mt-4 mb-2 border-b border-slate-100 dark:border-zinc-850 pb-0.5" {...props} />,
-          h3: ({ ...props }) => <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-200 mt-3 mb-1" {...props} />,
-          blockquote: ({ ...props }) => <blockquote className="border-l-4 border-blue-500 bg-slate-100 dark:bg-zinc-800/60 p-3 my-3 rounded-r-lg font-medium italic text-slate-700 dark:text-slate-200" {...props} />,
-          hr: () => <hr className="my-4 border-slate-200 dark:border-zinc-800" />,
-        }}
-      >
-        {editingMemo}
-      </ReactMarkdown>
+    <div className={`w-full p-3 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
+      {editingMemo ? (
+        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-slate-600 dark:text-slate-300">
+          <ReactMarkdown>{editingMemo}</ReactMarkdown>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
+      )}
     </div>
-  ) : (
-    <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
-  )}
-</div>
   )}
 </div>
                             <div className="flex justify-end gap-2 pb-2 mt-2">
