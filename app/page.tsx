@@ -717,7 +717,7 @@ export default function Home() {
     <button
       onClick={() => aiSuggesterRef.current?.handleAiSuggest()}
       disabled={aiLoading}
-      className={`${currentStyles.masterText} py-1.5 px-3.5 rounded-xl md:text-sm font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`${currentStyles.masterText} py-[0.4em] px-[0.8em] rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {aiLoading ? '🔄 考案中...' : '🔄 再提案'}
     </button>
