@@ -707,7 +707,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
               <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
-<div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+<div className="flex justify-between items-center mb-4 gap-2">
   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
   </h2>
@@ -717,7 +717,7 @@ export default function Home() {
     <button
       onClick={() => aiSuggesterRef.current?.handleAiSuggest()}
       disabled={aiLoading}
-      className={`${currentStyles.masterText} py-[0.4em] px-[0.8em] rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`${currentStyles.masterText} py-[0.4em] px-[0.8em] rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
     >
       {aiLoading ? '🔄 考案中...' : '🔄 再提案'}
     </button>
