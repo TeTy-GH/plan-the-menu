@@ -173,7 +173,7 @@ useEffect(() => {
       }
     }, 50);
   }
-}, [editingId, editingMemo]);
+}, [editingId, editingMemo, memoTab]);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
@@ -1303,10 +1303,23 @@ useEffect(() => {
       className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
     />
   ) : (
-    <div className={`w-full p-3 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
+    <div className={`w-full p-4 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
       {editingMemo ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 text-slate-600 dark:text-slate-300">
-          <ReactMarkdown>{editingMemo}</ReactMarkdown>
+        <div className="max-w-none text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          <ReactMarkdown
+            components={{
+              // 🟢 各MarkdownタグがHTMLに変換される瞬間に、Tailwindのクラスを強制注入する魔法
+              ul: ({ ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
+              ol: ({ ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
+              li: ({ ...props }) => <li className="text-slate-700 dark:text-slate-200" {...props} />,
+              h2: ({ ...props }) => <h2 className="text-base font-bold text-slate-800 dark:text-zinc-100 mt-4 mb-2 border-b border-slate-100 dark:border-zinc-850 pb-0.5" {...props} />,
+              h3: ({ ...props }) => <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-200 mt-3 mb-1" {...props} />,
+              blockquote: ({ ...props }) => <blockquote className="border-l-4 border-blue-500 bg-slate-100 dark:bg-zinc-800/60 p-3 my-3 rounded-r-lg font-medium italic text-slate-700 dark:text-slate-200" {...props} />,
+              hr: () => <hr className="my-4 border-slate-200 dark:border-zinc-800" />,
+            }}
+          >
+            {editingMemo}
+          </ReactMarkdown>
         </div>
       ) : (
         <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
