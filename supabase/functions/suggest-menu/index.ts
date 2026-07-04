@@ -71,7 +71,24 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     const genAI = new GoogleGenerativeAI(apiKey || "");
     const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
-    const prompt = `食材: ${ingredientNames}\n除外(過去7日): ${excludedMenus}\n晩ごはんを1つ提案して。「〇〇はいかがですか？」形式で短く。`;
+    //const prompt = `食材: ${ingredientNames}\n除外(過去7日): ${excludedMenus}\n晩ごはんを1つ提案して。「〇〇はいかがですか？」形式で短く。`;
+
+    const prompt = `食材: ${ingredientNames}
+除外(過去7日): ${excludedMenus}
+
+晩ごはんのメニューを1つ提案してください。
+出力は必ず以下の【フォーマット】を厳守し、余計な挨拶や解説は一切含めないでください。
+
+【フォーマット】
+[純粋な料理名] / [料理名を含んだ、40文字程度の秀逸な提案文]
+
+【提案文のルール】
+・一瞬で読めて食欲をそそる、短く洗練された1文（40文字前後）にしてください。
+
+【出力例】
+豚の生姜焼き / 甘辛く香ばしいタレの豚の生姜焼きで、炊きたてのご飯が止まらない至福の時間を。
+チキン南蛮 / ジューシーなチキン南蛮に濃厚タルタルソースを絡めて、お腹も心も満たされる夕食に。
+麻婆豆腐 / ピリッと痺れる辛みと旨みが絶妙な麻婆豆腐で、今夜は熱々のご飯を豪快にかき込もう。`;
 
     const result = await model.generateContent(prompt);
     const menuText = result.response.text().trim();
