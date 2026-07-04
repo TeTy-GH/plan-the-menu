@@ -127,7 +127,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
             
             {/* 🟢 紹介文の表示（一瞬で読めるスマートなスタイル） */}
             {description && (
-              <p className="text-xs md:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto text-center font-medium">
+              <p className={`${currentStyles.score} text-xs md:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto text-center font-medium`}>
                 {description}
               </p>
             )}
@@ -145,7 +145,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
           href={`https://www.google.com/search?q=${encodeURIComponent(dishName + ' レシピ (クックパッド OR クラシル)')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900/60 transition shadow-sm text-xs md:text-sm"
+          className={`${currentStyles.score} flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900/60 transition shadow-sm text-xs md:text-sm`}
         >
           🍳 「{dishName}」のレシピを探す
         </a>
