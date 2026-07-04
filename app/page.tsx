@@ -1016,7 +1016,7 @@ export default function Home() {
                   </div>
 <div>
   <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
-    レシピ・メモ（Markdown対応）：
+    レシピ・メモ：
   </span>
 <textarea
   value={editingMemo} // または newMenuMemo
@@ -1241,7 +1241,7 @@ export default function Home() {
                             </div>
 <div className="mt-3">
   <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
-    レシピ・メモ（Markdown対応）：
+    レシピ・メモ：
   </span>
   <textarea
     value={editingMemo} // または newMenuMemo
@@ -1286,6 +1286,14 @@ export default function Home() {
                                 <button onClick={() => triggerDeleteMenuModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                               </div>
                             </div>
+{menu.memo && (
+  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-sm text-slate-600 dark:text-slate-300">
+    {/* 🟢 追加：Markdownの見た目を整えるための囲みdiv */}
+    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed分">
+      <ReactMarkdown>{menu.memo}</ReactMarkdown>
+    </div>
+  </div>
+)}                            
                           </div>
                         </div>
                       );
