@@ -159,12 +159,12 @@ export default function Home() {
 
   const aiSuggesterRef = useRef<{ handleAiSuggest: () => void }>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [memoTab, setMemoTab] = useState<'write' | 'preview'>('write');
+  const [newMemoTab, setNewMemoTab] = useState<'write' | 'preview'>('write');
+  const [editingMemoTab, setEditingMemoTab] = useState<'write' | 'preview'>('write');
 
 // 🟢 文字が変わった瞬間に、高さを全開にする
 useEffect(() => {
-  // 🟢 memoTab === 'write'（編集画面）のときだけ実行する条件を追加
-  if (editingId && memoTab === 'write') {
+  if (editingId && newMemoTab === 'write') {
     setTimeout(() => {
       const textarea = document.getElementById('new-memo-textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -173,11 +173,10 @@ useEffect(() => {
       }
     }, 50);
   }
-}, [editingId, editingMemo, memoTab]);
+}, [editingId, editingMemo, newMemoTab]);
 
 useEffect(() => {
-  // 🟢 memoTab === 'write'（編集画面）のときだけ実行する条件を追加
-  if (editingId && memoTab === 'write') {
+  if (editingId && editingMemoTab === 'write') {
     setTimeout(() => {
       const textarea = document.getElementById('editing-memo-textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -186,7 +185,7 @@ useEffect(() => {
       }
     }, 50);
   }
-}, [editingId, editingMemo, memoTab]);
+}, [editingId, editingMemo, newMemoTab]);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
@@ -1051,9 +1050,9 @@ useEffect(() => {
     <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
       <button
         type="button"
-        onClick={() => setMemoTab('write')}
+        onClick={() => setNewMemoTab('write')}
         className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'write'
+          newMemoTab === 'write'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
@@ -1062,9 +1061,9 @@ useEffect(() => {
       </button>
       <button
         type="button"
-        onClick={() => setMemoTab('preview')}
+        onClick={() => setNewMemoTab('preview')}
         className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'preview'
+          newMemoTab === 'preview'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
@@ -1074,7 +1073,7 @@ useEffect(() => {
     </div>
   </div>
 
-  {memoTab === 'write' ? (
+  {newMemoTab === 'write' ? (
     <textarea
       id="new-memo-textarea"
       value={editingMemo}
@@ -1126,10 +1125,13 @@ useEffect(() => {
                 </form>
               </div>
             </div>
+
+
+
             {/* 下段：既存データの編集・削除リストエリア */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 食材の一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
                   🥦 食材の編集・削除
                 </h2>
@@ -1202,6 +1204,7 @@ useEffect(() => {
                   })}
                 </div>
               </div>
+
 
               {/* メニューの一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
@@ -1329,9 +1332,9 @@ useEffect(() => {
     <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
       <button
         type="button"
-        onClick={() => setMemoTab('write')}
+        onClick={() => setEditingMemoTab('write')}
         className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'write'
+          newMemoTab === 'write'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
@@ -1340,9 +1343,9 @@ useEffect(() => {
       </button>
       <button
         type="button"
-        onClick={() => setMemoTab('preview')}
+        onClick={() => setEditingMemoTab('preview')}
         className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'preview'
+          newMemoTab === 'preview'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
@@ -1352,7 +1355,7 @@ useEffect(() => {
     </div>
   </div>
 
-  {memoTab === 'write' ? (
+  {newMemoTab === 'write' ? (
     <textarea
       id="editing-memo-textarea"
       value={editingMemo}
