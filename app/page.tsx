@@ -163,8 +163,8 @@ export default function Home() {
 
 // 🟢 追加：編集モードに入った瞬間（初期表示）と、文字が変わった瞬間に、高さを全開にする
 useEffect(() => {
-  if (editingId) {
-    // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
+  // 🟢 memoTab === 'write'（編集画面）のときだけ実行する条件を追加
+  if (editingId && memoTab === 'write') {
     setTimeout(() => {
       const textarea = document.getElementById('editing-memo-textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -173,7 +173,7 @@ useEffect(() => {
       }
     }, 50);
   }
-}, [editingId, editingMemo]);
+}, [editingId, editingMemo, memoTab]);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
