@@ -161,7 +161,20 @@ export default function Home() {
   const [aiLoading, setAiLoading] = useState(false);
   const [memoTab, setMemoTab] = useState<'write' | 'preview'>('write');
 
-// 🟢 追加：編集モードに入った瞬間（初期表示）と、文字が変わった瞬間に、高さを全開にする
+// 🟢 文字が変わった瞬間に、高さを全開にする
+useEffect(() => {
+  // 🟢 memoTab === 'write'（編集画面）のときだけ実行する条件を追加
+  if (editingId && memoTab === 'write') {
+    setTimeout(() => {
+      const textarea = document.getElementById('new-memo-textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      }
+    }, 50);
+  }
+}, [editingId, editingMemo, memoTab]);
+
 useEffect(() => {
   // 🟢 memoTab === 'write'（編集画面）のときだけ実行する条件を追加
   if (editingId && memoTab === 'write') {
