@@ -159,9 +159,20 @@ export default function Home() {
 
   const aiSuggesterRef = useRef<{ handleAiSuggest: () => void }>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [memoTab, setMemoTab] = useState<'write' | 'preview'>('write');
+  const [newMemoTab, setNewMemoTab] = useState<'write' | 'preview'>('write');
+  const [editingMemoTab, setEditingMemoTab] = useState<'write' | 'preview'>('write');
 
-// 🟢 追加：編集モードに入った瞬間（初期表示）と、文字が変わった瞬間に、高さを全開にする
+  useEffect(() => {
+    // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
+    setTimeout(() => {
+      const textarea = document.getElementById('new-memo-textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      }
+    }, 50);
+  }, [ newMenuMemo, newMemoTab]);
+
 useEffect(() => {
   if (editingId) {
     // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
@@ -173,7 +184,7 @@ useEffect(() => {
       }
     }, 50);
   }
-}, [editingId, editingMemo, memoTab]);
+}, [editingId, editingMemo, editingMemoTab]);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
@@ -1030,21 +1041,79 @@ useEffect(() => {
                     </div>
                   </div>
 <div>
-  <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
-    レシピ・メモ：
-  </span>
-<textarea
-  value={editingMemo} // または newMenuMemo
-  onChange={(e) => {
-    setEditingMemo(e.target.value); // または setNewMenuMemo
-    // 👇 入力された文字の高さに合わせて、枠の重さを一瞬で書き換える魔法の2行
-    e.target.style.height = 'auto';
-    e.target.style.height = `${e.target.scrollHeight}px`;
-  }}
-  placeholder="材料や作り方、コツなどを自由にメモ..."
-  rows={3} // 最初は3行分くらいの高さ
-  className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
-/>
+  {/* 🔥 タイトルと「入力/プレビュー」切り替えボタンのヘッダー */}
+  <div className="flex justify-between items-center mb-2">
+    <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
+      レシピ・メモ（新規追加）：
+    </span>
+    
+    {/* タブ切り替えボタン */}
+    <div className="flex gap-1 bg-slate-100 dark:bg-zinc-850 p-1 rounded-lg text-xs">
+      <button
+        type="button"
+        onClick={() => setNewMemoTab('write')} // 🟢 新規用のタブStateを指定（例: newMemoTab）
+        className={`px-3 py-1 rounded-md font-medium transition ${
+          newMemoTab === 'write'
+            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
+            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+        }`}
+      >
+        編集
+      </button>
+      <button
+        type="button"
+        onClick={() => setNewMemoTab('preview')}
+        className={`px-3 py-1 rounded-md font-medium transition ${
+          newMemoTab === 'preview'
+            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
+            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+        }`}
+      >
+        プレビュー
+      </button>
+    </div>
+  </div>
+
+  {/* 🔥 入力画面 と 完全プレビュー画面 の切り替え */}
+  {newMemoTab === 'write' ? (
+    <textarea
+      id="new-memo-textarea" // 🟢 編集用と衝突しないように専用IDを設定
+      value={newMenuMemo}   // 🟢 新規用のテキストStateを指定
+      onChange={(e) => {
+        setNewMenuMemo(e.target.value);
+        // 👇 入力された文字の高さに合わせて自動リサイズする魔法の2行
+        e.target.style.height = 'auto';
+        e.target.style.height = `${e.target.scrollHeight}px`;
+      }}
+      placeholder="材料や作り方、コツなどを自由にメモ..."
+      rows={3}
+      className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
+    />
+  ) : (
+    /* 🟢 編集側で大成功した、Tailwindリセットを無効化する高精度プレビュー */
+    <div className={`w-full p-4 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
+      {newMenuMemo ? (
+        <div className="max-w-none text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          <ReactMarkdown
+            components={{
+              // 各MarkdownタグがHTMLに変換される瞬間に、Tailwindのクラスを強制注入してドットや数字を復活させる
+              ul: ({ ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
+              ol: ({ ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
+              li: ({ ...props }) => <li className="text-slate-700 dark:text-slate-200" {...props} />,
+              h2: ({ ...props }) => <h2 className="text-base font-bold text-slate-800 dark:text-zinc-100 mt-4 mb-2 border-b border-slate-100 dark:border-zinc-800 pb-0.5" {...props} />,
+              h3: ({ ...props }) => <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-200 mt-3 mb-1" {...props} />,
+              blockquote: ({ ...props }) => <blockquote className="border-l-4 border-blue-500 bg-slate-100 dark:bg-zinc-800/60 p-3 my-3 rounded-r-lg font-medium italic text-slate-700 dark:text-slate-200" {...props} />,
+              hr: () => <hr className="my-4 border-slate-200 dark:border-zinc-800" />,
+            }}
+          >
+            {newMenuMemo}
+          </ReactMarkdown>
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
+      )}
+    </div>
+  )}
 </div>
                   <button 
                     type="submit" 
@@ -1141,7 +1210,7 @@ useEffect(() => {
               </div>
 
               {/* メニューの一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
                 {/* タイトルと切り替えボタンを横並びにするコンテナ */}
                 <div className="flex justify-between items-center mb-3 border-b dark:border-zinc-800 pb-2 flex-wrap gap-2">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
@@ -1266,9 +1335,9 @@ useEffect(() => {
     <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
       <button
         type="button"
-        onClick={() => setMemoTab('write')}
+        onClick={() => setEditingMemoTab('write')}
         className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'write'
+          editingMemoTab === 'write'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
@@ -1277,9 +1346,9 @@ useEffect(() => {
       </button>
       <button
         type="button"
-        onClick={() => setMemoTab('preview')}
+        onClick={() => setEditingMemoTab('preview')}
         className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          memoTab === 'preview'
+          editingMemoTab === 'preview'
             ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
         }`}
@@ -1289,7 +1358,7 @@ useEffect(() => {
     </div>
   </div>
 
-  {memoTab === 'write' ? (
+  {editingMemoTab === 'write' ? (
     <textarea
       id="editing-memo-textarea"
       value={editingMemo}
