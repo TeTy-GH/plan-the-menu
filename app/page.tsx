@@ -329,7 +329,7 @@ export default function Home() {
       const menu = modal.data as Menu;
       const { data: currentMenu } = await supabase
         .from('menus')
-        .select('cook_count, last_cooked_at')
+        .select('cook_count, last_cooked_at, memo')
         .eq('id', menu.id)
         .single();
 
@@ -1018,14 +1018,18 @@ export default function Home() {
   <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
     レシピ・メモ（Markdown対応）：
   </span>
-  <textarea
-    value={newMenuMemo}
-    onChange={(e) => setNewMenuMemo(e.target.value)}
-    placeholder="材料や作り方、コツなどを自由にメモ..."
-    rows={4}
-    className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none ${inputGlobalStyle} ${currentStyles.input}`}
-    disabled={masterLoading}
-  />
+<textarea
+  value={editingMemo} // または newMenuMemo
+  onChange={(e) => {
+    setEditingMemo(e.target.value); // または setNewMenuMemo
+    // 👇 入力された文字の高さに合わせて、枠の重さを一瞬で書き換える魔法の2行
+    e.target.style.height = 'auto';
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  }}
+  placeholder="材料や作り方、コツなどを自由にメモ..."
+  rows={3} // 最初は3行分くらいの高さ
+  className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
+/>
 </div>
                   <button 
                     type="submit" 
@@ -1143,11 +1147,16 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="max-h-100 overflow-y-auto pr-2 space-y-2">
+                {/* 🟢 編集中のID（editingId）がある時は、高さ上限をなし(max-h-none)にしてスクロールも消す */}
+<div className={`pr-2 space-y-2 transition-all duration-300 ${
+  editingId ? 'max-h-none' : 'max-h-100 overflow-y-auto'
+}`}>
                   {/* 🟢 recommendedMenus の直後に .filter を追加して選択中のタイプだけに絞り込む */}
                   {recommendedMenus
-                    .filter(menu => (menu.menu_type || 'main') === selectedManageMenuType)
-                    .map((menu) => {
+  .filter(menu => (menu.menu_type || 'main') === selectedManageMenuType)
+  // 🟢 追加：編集中の時は、そのメニュー以外をリストから除外する（画面から消す）
+  .filter(menu => editingId === null || menu.id === editingId)
+  .map((menu) => {
                       const isEditing = editingId === menu.id;
 
                       return (
@@ -1235,11 +1244,16 @@ export default function Home() {
     レシピ・メモ（Markdown対応）：
   </span>
   <textarea
-    value={editingMemo}
-    onChange={(e) => setEditingMemo(e.target.value)}
-    placeholder="レシピのメモ..."
-    rows={4}
-    className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none ${inputGlobalStyle} ${currentStyles.input}`}
+    value={editingMemo} // または newMenuMemo
+    onChange={(e) => {
+      setEditingMemo(e.target.value); // または setNewMenuMemo
+      // 👇 入力された文字の高さに合わせて、枠の重さを一瞬で書き換える魔法の2行
+      e.target.style.height = 'auto';
+      e.target.style.height = `${e.target.scrollHeight}px`;
+    }}
+    placeholder="材料や作り方、コツなどを自由にメモ..."
+    rows={3} // 最初は3行分くらいの高さ
+    className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
   />
 </div>
                             <div className="flex justify-end gap-2 pb-2 mt-2">
