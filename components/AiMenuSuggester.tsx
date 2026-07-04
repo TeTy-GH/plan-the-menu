@@ -122,7 +122,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
             
             {/* 🟢 中央寄せの区切り罫線（紹介文がある場合のみ表示） */}
             {description && (
-              <hr className={`${currentStyles.score} border-slate-300 dark:border-zinc-200 my-1.5 max-w-[120px] mx-auto`} />
+              <hr className="border-slate-300 dark:border-zinc-200 my-3 w-full" />
             )}
             
             {/* 🟢 紹介文の表示（一瞬で読めるスマートなスタイル） */}
