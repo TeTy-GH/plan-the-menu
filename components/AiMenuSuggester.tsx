@@ -113,7 +113,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
           </div>
         ) : aiMenuTitle !== null ? (
           <div className="text-center w-full space-y-2">
-            <span className={`${currentStyles.score} text-indigo-500 font-bold uppercase tracking-wider block text-[10px]`}>Today's Menu</span>
+            <span className={`${currentStyles.score} text-indigo-500 font-bold uppercase tracking-wider block`}>Today's Menu</span>
             
             {/* メニュー名のセンタリング表示 */}
             <p className={`${currentStyles.title} font-black text-slate-800 dark:text-zinc-100 text-center`}>
@@ -127,7 +127,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
             
             {/* 🟢 紹介文の表示（一瞬で読めるスマートなスタイル） */}
             {description && (
-              <p className={`${currentStyles.score} text-xs md:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto text-center font-medium`}>
+              <p className={`${currentStyles.score} text-slate-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto text-center font-medium`}>
                 {description}
               </p>
             )}

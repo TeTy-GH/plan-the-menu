@@ -708,7 +708,7 @@ export default function Home() {
               {/* おすすめリスト */}
               <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
 <div className="flex justify-between items-center mb-4 gap-2">
-  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
+  <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
   </h2>
   
@@ -740,13 +740,13 @@ export default function Home() {
                     <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
                       <button 
                         onClick={() => setSelectedMenuType('main')} 
-                        className={`px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'main' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
+                        className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'main' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
                       >
                         🍗 主菜
                       </button>
                       <button 
                         onClick={() => setSelectedMenuType('side')} 
-                        className={`px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'side' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
+                        className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'side' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
                       >
                         🥗 副菜
                       </button>
@@ -754,8 +754,8 @@ export default function Home() {
 
                     {/* 既存の並び替えボタン */}
                     <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
-                      <button onClick={() => setSortMode('score')} className={`px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>おすすめ</button>
-                      <button onClick={() => setSortMode('history')} className={`px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>調理履歴</button>
+                      <button onClick={() => setSortMode('score')} className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>おすすめ</button>
+                      <button onClick={() => setSortMode('history')} className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>調理履歴</button>
                     </div>
                   </div>
                 
