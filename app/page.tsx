@@ -1255,6 +1255,14 @@ export default function Home() {
     rows={3} // 最初は3行分くらいの高さ
     className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
   />
+  {menu.memo && (
+  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-sm text-slate-600 dark:text-slate-300">
+    {/* 🟢 追加：Markdownの見た目を整えるための囲みdiv */}
+    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed分">
+      <ReactMarkdown>{menu.memo}</ReactMarkdown>
+    </div>
+  </div>
+)}   
 </div>
                             <div className="flex justify-end gap-2 pb-2 mt-2">
                               <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
@@ -1285,15 +1293,7 @@ export default function Home() {
                                 <button onClick={() => handleStartEditMenu(menu)} className={`text-indigo-600 dark:text-white hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>編集</button>
                                 <button onClick={() => triggerDeleteMenuModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:underline font-bold dark:bg-zinc-800 dark:rounded ${currentStyles.masterBtn}`}>削除</button>
                               </div>
-                            </div>
-{menu.memo && (
-  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800 text-sm text-slate-600 dark:text-slate-300">
-    {/* 🟢 追加：Markdownの見た目を整えるための囲みdiv */}
-    <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed分">
-      <ReactMarkdown>{menu.memo}</ReactMarkdown>
-    </div>
-  </div>
-)}                            
+                            </div>                         
                           </div>
                         </div>
                       );
