@@ -648,72 +648,72 @@ useEffect(() => {
     }
   });
 
-const handleOpenConfirmModal = () => {
-  if (!extractedRecipe) return;
+  const handleOpenConfirmModal = () => {
+    if (!extractedRecipe) return;
 
-  setModal({
-    show: true,
-    type: 'confirm',
-    title: `✨ AIが作成したレシピを確認`,
-    message: extractedRecipe,
-    onConfirm: () => {
-      // 1. メモの最後尾に結合
-      setNewMenuMemo((prevMemo) => {
-        if (prevMemo && prevMemo.trim()) return `${prevMemo}\n\n${extractedRecipe}`;
-        return extractedRecipe;
-      });
-      // 2. 状態を姿①（初期状態）に戻す
-      setExtractedRecipe(null);
-      setAiCount((prev) => prev + 1);
-      // 3. モーダルを閉じる
-      setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
-    }
-  });
-};
-
-// 🧠 自前で作った Vercel API 経由でレシピを生成する非同期関数
-const handleAiCreateRecipe = async () => {
-  if (isAiLoading) return;
-  setIsAiLoading(true);
-
-  try {
-    // 🚀 【非同期処理】たった今作成した「身内（Vercel）のAPI」を叩く！
-    const response = await fetch('/api/create-recipe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        menu_title: newMenuTitle, // 料理名
-        aiCount: aiCount          // おかわりカウンタ（0, 1, 2...）
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("レシピの生成に失敗しました。");
-    }
-
-    const data = await response.json();
-    const recipeText = data.recipe; // APIから返ってきたレシピ文
-
-    if (!recipeText) {
-      throw new Error("レシピデータが空っぽです。");
-    }
-
-    // ✨ 姿③（貼付け待ち）に変身！
-    setExtractedRecipe(recipeText);
-
-  } catch (error) {
-    console.error("AIレシピ生成エラー:", error);
-    // モーダルを起動
     setModal({
       show: true,
-      type: 'info',
-      title: '通信エラー',
-      message: 'AIレシピの作成に失敗しました。',
+      type: 'confirm',
+      title: `✨ AIが作成したレシピを確認`,
+      message: extractedRecipe,
+      onConfirm: () => {
+        // 1. メモの最後尾に結合
+        setNewMenuMemo((prevMemo) => {
+          if (prevMemo && prevMemo.trim()) return `${prevMemo}\n\n${extractedRecipe}`;
+          return extractedRecipe;
+        });
+        // 2. 状態を姿①（初期状態）に戻す
+        setExtractedRecipe(null);
+        setAiCount((prev) => prev + 1);
+        // 3. モーダルを閉じる
+        setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
+      }
     });
-  } finally {
-    setIsAiLoading(false);
-  }
-};
+  };
+
+  // 🧠 自前で作った Vercel API 経由でレシピを生成する非同期関数
+  const handleAiCreateRecipe = async () => {
+    if (isAiLoading) return;
+    setIsAiLoading(true);
+
+    try {
+      // 🚀 【非同期処理】たった今作成した「身内（Vercel）のAPI」を叩く！
+      const response = await fetch('/api/create-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          menu_title: newMenuTitle, // 料理名
+          aiCount: aiCount          // おかわりカウンタ（0, 1, 2...）
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("レシピの生成に失敗しました。");
+      }
+
+      const data = await response.json();
+      const recipeText = data.recipe; // APIから返ってきたレシピ文
+
+      if (!recipeText) {
+        throw new Error("レシピデータが空っぽです。");
+      }
+
+      // ✨ 姿③（貼付け待ち）に変身！
+      setExtractedRecipe(recipeText);
+
+    } catch (error) {
+      console.error("AIレシピ生成エラー:", error);
+      // モーダルを起動
+      setModal({
+        show: true,
+        type: 'info',
+        title: '通信エラー',
+        message: 'AIレシピの作成に失敗しました。',
+      });
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
 
 
@@ -736,7 +736,7 @@ const handleAiCreateRecipe = async () => {
 
 
 
-// 🟢 変更点1: 背景を夕焼けをイメージした美しいグラデーション（または画像）に変更
+  // 🟢 変更点1: 背景を夕焼けをイメージした美しいグラデーション（または画像）に変更
   // ※ もし画像にしたい場合は bg-gradient-to-b ... の代わりに bg-[url('/sunset.jpg')] bg-cover bg-center bg-no-repeat bg-fixed にします
   return (
     <main className="min-h-screen relative text-slate-800 dark:text-slate-100">
@@ -1190,36 +1190,36 @@ const handleAiCreateRecipe = async () => {
                       </span>
                     </div>
 
-{/* 🔮 AIレシピ作成・貼り付けボタン（ステートマシン） */}
-  {isAiLoading ? (
-    // ─── 姿②：通信中 ───
-    <button
-      type="button"
-      disabled
-      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed flex items-center gap-1 z-10"
-    >
-      <span className="animate-spin">🌀</span> レシピ作成中...
-    </button>
-  ) : extractedRecipe !== null ? (
-    // ─── 姿③：レシピ完成（ピカピカ状態） ───
-    <button
-      type="button"
-      onClick={handleOpenConfirmModal} // 🟢 統合モーダルを開く関数へ
-      // animate-pulse でピカピカ（ふわふわ）と光るアニメーションを与え、indigoで目立たせる
-      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 animate-pulse flex items-center gap-1 z-10 transition-all duration-300"
-    >
-      <span>📌</span> メモへ貼付け
-    </button>
-  ) : (
-    // ─── 姿①：初期状態（またはおかわりを引きたい時） ───
-    <button
-      type="button"
-      onClick={handleAiCreateRecipe} // 🟢 Gemini APIを叩く関数へ
-      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/80 flex items-center gap-1 z-10 transition-colors"
-    >
-      <span>✨</span> {aiCount === 0 ? "AIレシピ作成" : "他のおかわり"}
-    </button>
-  )}
+                    {/* 🔮 AIレシピ作成・貼り付けボタン（ステートマシン） */}
+                    {isAiLoading ? (
+                      // ─── 姿②：通信中 ───
+                      <button
+                        type="button"
+                        disabled
+                        className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed flex items-center gap-1 z-10"
+                      >
+                        <span className="animate-spin">🌀</span> レシピ作成中...
+                      </button>
+                    ) : extractedRecipe !== null ? (
+                      // ─── 姿③：レシピ完成（ピカピカ状態） ───
+                      <button
+                        type="button"
+                        onClick={handleOpenConfirmModal} // 🟢 統合モーダルを開く関数へ
+                        // animate-pulse でピカピカ（ふわふわ）と光るアニメーションを与え、indigoで目立たせる
+                        className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 animate-pulse flex items-center gap-1 z-10 transition-all duration-300"
+                      >
+                        <span>📌</span> メモへ貼付け
+                      </button>
+                    ) : (
+                      // ─── 姿①：初期状態（またはおかわりを引きたい時） ───
+                      <button
+                        type="button"
+                        onClick={handleAiCreateRecipe} // 🟢 Gemini APIを叩く関数へ
+                        className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/80 flex items-center gap-1 z-10 transition-colors"
+                      >
+                        <span>✨</span> {aiCount === 0 ? "AIレシピ作成" : "他のおかわり"}
+                      </button>
+                    )}
 
                     <textarea
                       id="new-memo-textarea"
@@ -1233,7 +1233,7 @@ const handleAiCreateRecipe = async () => {
                       placeholder="材料や作り方、コツなどを自由にメモ...（エンターキーの改行がそのまま反映されます）"
                       rows={3}
                       // 🟢 text-base, leading-snug, whitespace-pre-line を追加して、表示時と100%同じ見栄えに統一
-                      className={`w-full p-3 pt-12 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden text-base leading-snug whitespace-pre-line ${inputGlobalStyle} ${currentStyles.input}`}
+                      className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden text-base leading-snug whitespace-pre-line ${inputGlobalStyle} ${currentStyles.input}`}
                     />
 
                   </div>
@@ -1456,7 +1456,6 @@ const handleAiCreateRecipe = async () => {
                             </span>
                           </div>
 
-                          {/* 🟢 Markdownとプレビュー分岐を完全撤去し、入力欄単体に一本化 */}
                           <textarea
                             id="editing-memo-textarea"
                             value={editingMemo}
@@ -1471,9 +1470,7 @@ const handleAiCreateRecipe = async () => {
                             // 🟢 text-base, leading-snug, whitespace-pre-line を追加して、表示時と100%同じ見栄えに統一
                             className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden text-base leading-snug whitespace-pre-line ${inputGlobalStyle} ${currentStyles.input}`}
                           />
-
                         </div>
-                              
 
                             <div className="flex justify-end gap-2 pb-2 mt-2">
                               <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
@@ -1587,15 +1584,15 @@ const handleAiCreateRecipe = async () => {
                     キャンセル
                   </button>
                   <button onClick={() => {
-    if (modal.onConfirm) {
-      modal.onConfirm(); // ① 親から実行関数が渡されていれば、それを実行する
-    } 
-  }} 
-  className={`pt-1 pl-3 pr-3 pb-1 text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
-    modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
-  }`}
->
-  はい
+                    if (modal.onConfirm) {
+                      modal.onConfirm(); // ① 親から実行関数が渡されていれば、それを実行する
+                    } 
+                  }} 
+                  className={`pt-1 pl-3 pr-3 pb-1 text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
+                    modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
+                  }`}
+                  >
+                  はい
                   </button>
                 </>
               )}
