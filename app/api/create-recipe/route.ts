@@ -34,8 +34,13 @@ export async function POST(request: Request) {
     // 5. 成功したら画面にテキストを返す
     return NextResponse.json({ recipe: text });
 
-  } catch (error) {
+ } catch (error: any) {
     console.error('Vercel API Error:', error);
-    return NextResponse.json({ error: '内部サーバーエラーが発生しました' }, { status: 500 });
+    
+    // 💡 固定文字ではなく、発生した本当のエラーメッセージ（error.message）を画面に送り返す
+    return NextResponse.json(
+      { error: `サーバー内部でのクラッシュ: ${error.message || String(error)}` }, 
+      { status: 500 }
+    );
   }
 }
