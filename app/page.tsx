@@ -721,7 +721,8 @@ useEffect(() => {
       });
     } finally {
       setIsAiLoading(false);
-    }
+    };
+  }
 
 
 
