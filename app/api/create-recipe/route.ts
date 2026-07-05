@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'APIキーが設定されていません' }, { status: 500 });
     }
     const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-3-flash' }); // 💡 2026年現在の標準高速モデル
+    const model = ai.getGenerativeModel({ model: 'gemini-3.1-flash-lite' }); // 💡 2026年現在の標準高速モデル
 
     // 3. おかわりカウンタ（aiCount）に応じてプロンプトを分岐
     let prompt = "";
