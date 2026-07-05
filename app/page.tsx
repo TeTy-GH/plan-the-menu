@@ -347,10 +347,6 @@ useEffect(() => {
             type: 'info',
             title: 'お知らせ',
             message: `「${menu.title}」は本日すでに調理済みとして記録されています。\n重複を防ぐためカウントの更新をスキップしました。`,
-            onConfirm: () => {
-              // お知らせの「確認」を押したらモーダルを閉じる
-              setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
-            }
           });
           return; 
         }
@@ -387,6 +383,7 @@ useEffect(() => {
         if (!error) {
           setRefreshTrigger(prev => prev + 1);
         }
+        setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
       }
     });
   };
@@ -423,6 +420,7 @@ useEffect(() => {
           setRefreshTrigger(prev => prev + 1);
         }
         setMasterLoading(false);
+        setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
       }
     });
   };
@@ -440,6 +438,7 @@ useEffect(() => {
           handleRemoveFromKeep(id);
           setRefreshTrigger(prev => prev + 1);
         }
+        setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
       }
     });
   };
@@ -710,7 +709,6 @@ const handleAiCreateRecipe = async () => {
       type: 'info',
       title: '通信エラー',
       message: 'AIレシピの作成に失敗しました。',
-      onConfirm: () => setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined })
     });
   } finally {
     setIsAiLoading(false);
