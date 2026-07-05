@@ -655,7 +655,7 @@ useEffect(() => {
       show: true,
       type: 'confirm',
       title: `✨ AIが作成したレシピを確認`,
-      message: 'AIレシピをメモに追記しますか？（以下、レシピ内容）\n\n' + extractedRecipe,
+      message: 'AIレシピをメモに追記しますか？（以下、レシピ内容）\n\n\n' + extractedRecipe,
       onConfirm: () => {
         // 1. メモの最後尾に結合
         setNewMenuMemo((prevMemo) => {
