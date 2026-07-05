@@ -655,7 +655,7 @@ useEffect(() => {
       show: true,
       type: 'confirm',
       title: `✨ AIが作成したレシピを確認`,
-      message: extractedRecipe,
+      message: 'AIレシピをメモに追記しますか？（以下、レシピ内容）\n\n' + extractedRecipe,
       onConfirm: () => {
         // 1. メモの最後尾に結合
         setNewMenuMemo((prevMemo) => {
@@ -1204,7 +1204,7 @@ useEffect(() => {
                       <button
                         type="button"
                         disabled
-                        className="absolute top-1 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed flex items-center gap-1 z-10"
+                        className="absolute right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed flex items-center gap-1 z-10"
                       >
                         <span className="animate-spin">🌀</span> レシピ作成中...
                       </button>
@@ -1214,7 +1214,7 @@ useEffect(() => {
                         type="button"
                         onClick={handleOpenConfirmModal} // 🟢 統合モーダルを開く関数へ
                         // animate-pulse でピカピカ（ふわふわ）と光るアニメーションを与え、indigoで目立たせる
-                        className="absolute top-1 right-2 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 animate-pulse flex items-center gap-1 z-10 transition-all duration-300"
+                        className="absolute right-2 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 animate-pulse flex items-center gap-1 z-10 transition-all duration-300"
                       >
                         <span>📌</span> メモへ貼付け
                       </button>
@@ -1223,9 +1223,9 @@ useEffect(() => {
                       <button
                         type="button"
                         onClick={handleAiCreateRecipe} // 🟢 Gemini APIを叩く関数へ
-                        className="absolute top-1 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/80 flex items-center gap-1 z-10 transition-colors"
+                        className="absolute right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/80 flex items-center gap-1 z-10 transition-colors"
                       >
-                        <span>✨</span> {aiCount === 0 ? "AIレシピ作成" : "他のおかわり"}
+                        <span>✨</span> AIレシピ作成
                       </button>
                     )}
 
