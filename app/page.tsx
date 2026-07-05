@@ -183,9 +183,9 @@ export default function Home() {
   const [viewingMemoMenu, setViewingMemoMenu] = useState<Menu | null>(null);
 
   // 🔮 AIレシピ作成機能のための状態管理（State）
-const [aiCount, setAiCount] = useState<number>(0); // おかわりガチャの回数カウント
-const [isAiLoading, setIsAiLoading] = useState<boolean>(false); // 通信中（レシピ作成中...）のフラグ
-const [extractedRecipe, setExtractedRecipe] = useState<string | null>(null); // AIが生成したレシピの一時保持
+  const [aiCount, setAiCount] = useState<number>(0); // おかわりガチャの回数カウント
+  const [isAiLoading, setIsAiLoading] = useState<boolean>(false); // 通信中（レシピ作成中...）のフラグ
+  const [extractedRecipe, setExtractedRecipe] = useState<string | null>(null); // AIが生成したレシピの一時保持
   const openMemoModal = (menu: Menu) => {
     setViewingMemoMenu(menu);
   };
@@ -1182,7 +1182,7 @@ useEffect(() => {
                       })}
                     </div>
                   </div>
-                  <div>
+                  <div className="relative">
                     
                     <div className="flex justify-between items-center mb-2">
                       <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
