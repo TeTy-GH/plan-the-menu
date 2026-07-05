@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import AiMenuSuggester from '@/components/AiMenuSuggester';
-import ReactMarkdown from 'react-markdown';
 
 console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log("Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -79,11 +78,10 @@ interface Menu {
 
 interface ModalConfig {
   show: boolean;
-  // 🟢 info（情報表示用）を追加
-  type: 'made' | 'cancel_cook' | 'delete_ingredient' | 'delete_menu' | 'info' | null;
+  type: 'info' | 'confirm' | null;
   title: string;
   message: string;
-  data: any;
+  onConfirm?: () => void | Promise<void>;
 }
 
 interface MenuListItemProps { 
@@ -96,8 +94,10 @@ const MENU_TYPES: { id: MenuType; label: string }[] = [
   { id: 'side', label: '副菜' }
 ];
 
+//保存ボタンの自動スクロール表示機能
 function BoundaryPin({ isEditing }: { isEditing: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
+  return null;
+/*  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isEditing) {
@@ -109,7 +109,25 @@ function BoundaryPin({ isEditing }: { isEditing: boolean }) {
   }, [isEditing]);
 
   return <div ref={ref} className="h-0 w-full" />;
+  */
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -128,7 +146,7 @@ export default function Home() {
     type: null,
     title: '',
     message: '',
-    data: null
+    onConfirm: undefined
   });
 
   const [loading, setLoading] = useState(false);
@@ -161,6 +179,16 @@ export default function Home() {
   const [aiLoading, setAiLoading] = useState(false);
   const [newMemoTab, setNewMemoTab] = useState<'write' | 'preview'>('write');
   const [editingMemoTab, setEditingMemoTab] = useState<'write' | 'preview'>('write');
+
+  const [viewingMemoMenu, setViewingMemoMenu] = useState<Menu | null>(null);
+
+  // 🔮 AIレシピ作成機能のための状態管理（State）
+const [aiCount, setAiCount] = useState<number>(0); // おかわりガチャの回数カウント
+const [isAiLoading, setIsAiLoading] = useState<boolean>(false); // 通信中（レシピ作成中...）のフラグ
+const [extractedRecipe, setExtractedRecipe] = useState<string | null>(null); // AIが生成したレシピの一時保持
+  const openMemoModal = (menu: Menu) => {
+    setViewingMemoMenu(menu);
+  };
 
   useEffect(() => {
     // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
@@ -294,20 +322,72 @@ useEffect(() => {
   const triggerMadeModal = (menu: Menu) => {
     setModal({
       show: true,
-      type: 'made',
+      type: 'confirm',
       title: '調理の確認',
       message: `「${menu.title}」を作りましたか？`,
-      data: menu
+      onConfirm: async () => {
+
+        const { data: currentMenu } = await supabase
+          .from('menus')
+          .select('cook_count, last_cooked_at, memo')
+          .eq('id', menu.id)
+          .single();
+
+        const currentCount = currentMenu?.cook_count || 0;
+        const currentLast = currentMenu?.last_cooked_at || null;
+        const today = new Date().toISOString().split('T')[0];
+
+        // 重複チェック
+        if (currentLast === today) {
+          handleRemoveFromKeep(menu.id);
+          
+          // infoタイプのモーダルを表示して、関数をここで終了する
+          setModal({
+            show: true,
+            type: 'info',
+            title: 'お知らせ',
+            message: `「${menu.title}」は本日すでに調理済みとして記録されています。\n重複を防ぐためカウントの更新をスキップしました。`,
+            onConfirm: () => {
+              // お知らせの「確認」を押したらモーダルを閉じる
+              setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
+            }
+          });
+          return; 
+        }
+
+        // 未記録の場合のみSupabaseを更新
+        const { error } = await supabase
+          .from('menus')
+          .update({ 
+            cook_count: currentCount + 1,
+            prev_cooked_at: currentLast,
+            last_cooked_at: today,
+            is_cancelled: false
+          })
+          .eq('id', menu.id);
+
+        if (!error) {
+          handleRemoveFromKeep(menu.id);
+          setRefreshTrigger(prev => prev + 1);
+        }
+
+        setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
+      }
     });
   };
 
   const triggerCancelCookModal = (menuId: string, title: string) => {
     setModal({
       show: true,
-      type: 'cancel_cook',
+      type: 'confirm',
       title: '調理取消の確認',
       message: `「${title}」の直近の調理実績を取り消しますか？`,
-      data: { menuId }
+      onConfirm: async () => {
+        const { error } = await supabase.rpc('cancel_last_cooked', { target_menu_id: menuId });
+        if (!error) {
+          setRefreshTrigger(prev => prev + 1);
+        }
+      }
     });
   };
 
@@ -331,101 +411,37 @@ useEffect(() => {
 
     setModal({
       show: true,
-      type: 'delete_ingredient',
+      type: 'confirm',
       title: '削除の確認',
       message: msg,
-      data: { id, name }
+      onConfirm: async () => {
+        setMasterLoading(true);
+        await supabase.from('menu_ingredients').delete().eq('ingredient_id', id);
+        const { error: ingError } = await supabase.from('ingredients').delete().eq('id', id);
+        if (!ingError) {
+          setSelectedIngredients(prev => prev.filter(item => item !== id));
+          setRefreshTrigger(prev => prev + 1);
+        }
+        setMasterLoading(false);
+      }
     });
   };
 
   const triggerDeleteMenuModal = (id: string, title: string) => {
     setModal({
       show: true,
-      type: 'delete_menu',
+      type: 'confirm',
       title: '削除の確認',
       message: `メニュー「${title}」を削除しますか？\n\n※このメニューの使用食材マスタデータも同時に削除されます。`,
-      data: { id, title }
+      onConfirm: async () => {
+        await supabase.from('menu_ingredients').delete().eq('menu_id', id);
+        const { error } = await supabase.from('menus').delete().eq('id', id);
+        if (!error) {
+          handleRemoveFromKeep(id);
+          setRefreshTrigger(prev => prev + 1);
+        }
+      }
     });
-  };
-
-  const handleModalConfirm = async () => {
-    if (!modal.type || !modal.data) return;
-
-    if (modal.type === 'made') {
-      const menu = modal.data as Menu;
-      const { data: currentMenu } = await supabase
-        .from('menus')
-        .select('cook_count, last_cooked_at, memo')
-        .eq('id', menu.id)
-        .single();
-
-      const currentCount = currentMenu?.cook_count || 0;
-      const currentLast = currentMenu?.last_cooked_at || null;
-      const today = new Date().toISOString().split('T')[0];
-
-      // 🟢 変更箇所：すでに今日作った場合の処理をモーダルに置き換え
-      if (currentLast === today) {
-        handleRemoveFromKeep(menu.id);
-        
-        // infoタイプのモーダルを表示して、関数をここで終了（return）する
-        setModal({
-          show: true,
-          type: 'info',
-          title: 'お知らせ',
-          message: `「${menu.title}」は本日すでに調理済みとして記録されています。\n重複を防ぐためカウントの更新をスキップしました。`,
-          data: null
-        });
-        return; 
-      }
-
-      // 未記録の場合のみ更新
-      const { error } = await supabase
-        .from('menus')
-        .update({ 
-          cook_count: currentCount + 1,
-          prev_cooked_at: currentLast,
-          last_cooked_at: today,
-          is_cancelled: false
-        })
-        .eq('id', menu.id);
-
-      if (!error) {
-        handleRemoveFromKeep(menu.id);
-        setRefreshTrigger(prev => prev + 1);
-      }
-    } 
-    
-    else if (modal.type === 'cancel_cook') {
-      const { menuId } = modal.data;
-      const { error } = await supabase.rpc('cancel_last_cooked', { target_menu_id: menuId });
-      if (!error) {
-        setRefreshTrigger(prev => prev + 1);
-      }
-    } 
-    
-    else if (modal.type === 'delete_ingredient') {
-      const { id } = modal.data;
-      setMasterLoading(true);
-      await supabase.from('menu_ingredients').delete().eq('ingredient_id', id);
-      const { error: ingError } = await supabase.from('ingredients').delete().eq('id', id);
-      if (!ingError) {
-        setSelectedIngredients(prev => prev.filter(item => item !== id));
-        setRefreshTrigger(prev => prev + 1);
-      }
-      setMasterLoading(false);
-    } 
-    
-    else if (modal.type === 'delete_menu') {
-      const { id } = modal.data;
-      await supabase.from('menu_ingredients').delete().eq('menu_id', id);
-      const { error } = await supabase.from('menus').delete().eq('id', id);
-      if (!error) {
-        handleRemoveFromKeep(id);
-        setRefreshTrigger(prev => prev + 1);
-      }
-    }
-
-    setModal({ show: false, type: null, title: '', message: '', data: null });
   };
 
   const handleRegisterIngredient = async (e: React.FormEvent) => {
@@ -449,7 +465,6 @@ useEffect(() => {
         type: 'info',
         title: '登録エラー',
         message: `食材「${trimmedName}」はすでに登録されています。`,
-        data: null
       });
       return; // ここで処理を終了し、インサートを行わない
     }
@@ -488,7 +503,6 @@ useEffect(() => {
         type: 'info',
         title: '登録エラー',
         message: `メニュー「${trimmedTitle}」はすでに登録されています。`,
-        data: null
       });
       return; // ここで処理を終了し、インサートを行わない
     }
@@ -635,6 +649,95 @@ useEffect(() => {
     }
   });
 
+const handleOpenConfirmModal = () => {
+  if (!extractedRecipe) return;
+
+  setModal({
+    show: true,
+    type: 'confirm',
+    title: `✨ AIが作成したレシピを確認`,
+    message: extractedRecipe,
+    onConfirm: () => {
+      // 1. メモの最後尾に結合
+      setNewMenuMemo((prevMemo) => {
+        if (prevMemo && prevMemo.trim()) return `${prevMemo}\n\n${extractedRecipe}`;
+        return extractedRecipe;
+      });
+      // 2. 状態を姿①（初期状態）に戻す
+      setExtractedRecipe(null);
+      setAiCount((prev) => prev + 1);
+      // 3. モーダルを閉じる
+      setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
+    }
+  });
+};
+
+// 🧠 自前で作った Vercel API 経由でレシピを生成する非同期関数
+const handleAiCreateRecipe = async () => {
+  if (isAiLoading) return;
+  setIsAiLoading(true);
+
+  try {
+    // 🚀 【非同期処理】たった今作成した「身内（Vercel）のAPI」を叩く！
+    const response = await fetch('/api/create-recipe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        menu_title: newMenuTitle, // 料理名
+        aiCount: aiCount          // おかわりカウンタ（0, 1, 2...）
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("レシピの生成に失敗しました。");
+    }
+
+    const data = await response.json();
+    const recipeText = data.recipe; // APIから返ってきたレシピ文
+
+    if (!recipeText) {
+      throw new Error("レシピデータが空っぽです。");
+    }
+
+    // ✨ 姿③（貼付け待ち）に変身！
+    setExtractedRecipe(recipeText);
+
+  } catch (error) {
+    console.error("AIレシピ生成エラー:", error);
+    // モーダルを起動
+    setModal({
+      show: true,
+      type: 'info',
+      title: '通信エラー',
+      message: 'AIレシピの作成に失敗しました。',
+      onConfirm: () => setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined })
+    });
+  } finally {
+    setIsAiLoading(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // 🟢 変更点1: 背景を夕焼けをイメージした美しいグラデーション（または画像）に変更
   // ※ もし画像にしたい場合は bg-gradient-to-b ... の代わりに bg-[url('/sunset.jpg')] bg-cover bg-center bg-no-repeat bg-fixed にします
   return (
@@ -647,7 +750,8 @@ useEffect(() => {
             className="w-full h-full object-cover"
           />
           {/* 暗いフィルター（文字の視認性を保つためのオーバーレイ） */}
-          <div className="absolute inset-0 bg-white/30 dark:bg-zinc-950/40 backdrop-blur-[2px]" />
+          <div className="absolute z-50 inset-0 bg-white/30 dark:bg-zinc-950/40 backdrop-blur-[2px]">
+          </div>
         </div>
     
       <div className="max-w-5xl mx-auto space-y-6">
@@ -698,7 +802,9 @@ useEffect(() => {
             {/* 使いたい食材 */}
             <div className="bg-white/70 dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>🥦 使いたい食材</h2>
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
+                  🥦 使いたい食材
+                </h2>
                 {selectedIngredients.length > 0 && (
                   <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
                     ＜選択クリア＞
@@ -747,7 +853,7 @@ useEffect(() => {
             {/* メインカラム */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
-              <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
                 <div className="flex justify-between items-center mb-4 gap-2">
                   <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
@@ -859,7 +965,7 @@ useEffect(() => {
               </div>
 
               {/* 調理候補 */}
-              <div className="bg-white dark:bg-zinc-950/80 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
+              <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
                 <div className="flex items-center gap-2 mb-2 border-slate-100 dark:border-zinc-800 pb-3">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     📌 調理候補
@@ -870,10 +976,32 @@ useEffect(() => {
                   {keepList.length > 0 ? (
                     keepList.map(menu => (
                       <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
-                        <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>{menu.title}</span>
+                        <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>
+                          {menu.title}
+                          {/* 🟢 メモがある場合のみアイコンを表示 */}
+                          {menu.memo && (
+                              <button 
+                                onClick={() => setModal({
+                                  show: true,
+                                  type: 'info', // 🟢 ボタンを「確認」1つだけにするために 'info' を指定
+                                  title: `${menu.title} のメモ`, // 🟢 ご希望のヘッダータイトル
+                                  message: menu.memo, // 🟢 ここにメモの本文を叩き込む
+                                })} 
+                                className="ml-2 text-amber-500 hover:text-amber-600 transition shrink-0"
+                              >
+                                📝
+                              </button>
+                            )}
+                            
+                          </span>
+  
                         <div className="flex gap-2 shrink-0">
-                          <button onClick={() => triggerMadeModal(menu)} className={`bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg font-bold shadow-sm transition ${currentStyles.masterBtn}`}>✅ 作った！</button>
-                          <button onClick={() => handleRemoveFromKeep(menu.id)} className={`bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition ${currentStyles.masterBtn}`}>キャンセル</button>
+                          <button onClick={() => triggerMadeModal(menu)} className={`bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg font-bold shadow-sm transition ${currentStyles.masterBtn}`}>
+                            ✅ 作った！
+                          </button>
+                          <button onClick={() => handleRemoveFromKeep(menu.id)} className={`bg-white dark:bg-zinc-900 text-slate-500 dark:text-white border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition ${currentStyles.masterBtn}`}>
+                            キャンセル
+                          </button>
                         </div>
                       </div>
                     ))
@@ -920,6 +1048,21 @@ useEffect(() => {
             </div>
           </>
         )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1041,80 +1184,61 @@ useEffect(() => {
                       })}
                     </div>
                   </div>
-<div>
-  {/* 🔥 タイトルと「入力/プレビュー」切り替えボタンのヘッダー */}
-  <div className="flex justify-between items-center mb-2">
-    <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
-      レシピ・メモ：
-    </span>
-    
-    <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
-      <button
-        type="button"
-        onClick={() => setNewMemoTab('write')}
-        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          editingMemoTab === 'write'
-            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-        }`}
-      >
-        編集
-      </button>
-      <button
-        type="button"
-        onClick={() => setNewMemoTab('preview')}
-        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          editingMemoTab === 'preview'
-            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-        }`}
-      >
-        プレビュー
-      </button>
-    </div>
-  </div>
+                  <div>
+                    
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
+                        レシピ・メモ：
+                      </span>
+                    </div>
 
-  {/* 🔥 入力画面 と 完全プレビュー画面 の切り替え */}
-  {newMemoTab === 'write' ? (
-    <textarea
-      id="new-memo-textarea" // 🟢 編集用と衝突しないように専用IDを設定
-      value={newMenuMemo}   // 🟢 新規用のテキストStateを指定
-      onChange={(e) => {
-        setNewMenuMemo(e.target.value);
-        // 👇 入力された文字の高さに合わせて自動リサイズする魔法の2行
-        e.target.style.height = 'auto';
-        e.target.style.height = `${e.target.scrollHeight}px`;
-      }}
-      placeholder="材料や作り方、コツなどを自由にメモ..."
-      rows={3}
-      className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
-    />
+{/* 🔮 AIレシピ作成・貼り付けボタン（ステートマシン） */}
+  {isAiLoading ? (
+    // ─── 姿②：通信中 ───
+    <button
+      type="button"
+      disabled
+      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed flex items-center gap-1 z-10"
+    >
+      <span className="animate-spin">🌀</span> レシピ作成中...
+    </button>
+  ) : extractedRecipe !== null ? (
+    // ─── 姿③：レシピ完成（ピカピカ状態） ───
+    <button
+      type="button"
+      onClick={handleOpenConfirmModal} // 🟢 統合モーダルを開く関数へ
+      // animate-pulse でピカピカ（ふわふわ）と光るアニメーションを与え、indigoで目立たせる
+      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 animate-pulse flex items-center gap-1 z-10 transition-all duration-300"
+    >
+      <span>📌</span> メモへ貼付け
+    </button>
   ) : (
-    /* 🟢 編集側で大成功した、Tailwindリセットを無効化する高精度プレビュー */
-    <div className={`w-full p-4 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
-      {newMenuMemo ? (
-        <div className="max-w-none text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-          <ReactMarkdown
-            components={{
-              // 各MarkdownタグがHTMLに変換される瞬間に、Tailwindのクラスを強制注入してドットや数字を復活させる
-              ul: ({ ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
-              ol: ({ ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
-              li: ({ ...props }) => <li className="text-slate-700 dark:text-slate-200" {...props} />,
-              h2: ({ ...props }) => <h2 className="text-base font-bold text-slate-800 dark:text-zinc-100 mt-4 mb-2 border-b border-slate-100 dark:border-zinc-800 pb-0.5" {...props} />,
-              h3: ({ ...props }) => <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-200 mt-3 mb-1" {...props} />,
-              blockquote: ({ ...props }) => <blockquote className="border-l-4 border-blue-500 bg-slate-100 dark:bg-zinc-800/60 p-3 my-3 rounded-r-lg font-medium italic text-slate-700 dark:text-slate-200" {...props} />,
-              hr: () => <hr className="my-4 border-slate-200 dark:border-zinc-800" />,
-            }}
-          >
-            {newMenuMemo}
-          </ReactMarkdown>
-        </div>
-      ) : (
-        <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
-      )}
-    </div>
+    // ─── 姿①：初期状態（またはおかわりを引きたい時） ───
+    <button
+      type="button"
+      onClick={handleAiCreateRecipe} // 🟢 Gemini APIを叩く関数へ
+      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/80 flex items-center gap-1 z-10 transition-colors"
+    >
+      <span>✨</span> {aiCount === 0 ? "AIレシピ作成" : "他のおかわり"}
+    </button>
   )}
-</div>
+
+                    <textarea
+                      id="new-memo-textarea"
+                      value={newMenuMemo}
+                      onChange={(e) => {
+                        setNewMenuMemo(e.target.value);
+                        // 👇 入力された文字の高さに合わせて自動リサイズする魔法の2行
+                        e.target.style.height = 'auto';
+                        e.target.style.height = `${e.target.scrollHeight}px`;
+                      }}
+                      placeholder="材料や作り方、コツなどを自由にメモ...（エンターキーの改行がそのまま反映されます）"
+                      rows={3}
+                      // 🟢 text-base, leading-snug, whitespace-pre-line を追加して、表示時と100%同じ見栄えに統一
+                      className={`w-full p-3 pt-12 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden text-base leading-snug whitespace-pre-line ${inputGlobalStyle} ${currentStyles.input}`}
+                    />
+
+                  </div>
                   <button 
                     type="submit" 
                     disabled={masterLoading || !newMenuTitle.trim()} 
@@ -1133,9 +1257,9 @@ useEffect(() => {
 
 
             {/* 下段：既存データの編集・削除リストエリア */}
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               {/* 食材の一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
+              <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
                   🥦 食材の編集・削除
                 </h2>
@@ -1199,7 +1323,7 @@ useEffect(() => {
                                   </div>
                                 </div>
                               </div>
-                              <BoundaryPin isEditing={editingId === ing.id} />
+                              {/* <BoundaryPin isEditing={editingId === ing.id} /> */}
                             </div>
                           ))}
                         </div>
@@ -1210,7 +1334,7 @@ useEffect(() => {
               </div>
 
               {/* メニューの一覧・編集・削除 */}
-              <div className="bg-white dark:bg-zinc-950/88 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-3">
+              <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-3">
                 {/* タイトルと切り替えボタンを横並びにするコンテナ */}
                 <div className="flex justify-between items-center mb-3 border-b dark:border-zinc-800 pb-2 flex-wrap gap-2">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
@@ -1235,15 +1359,15 @@ useEffect(() => {
                 </div>
 
                 {/* 🟢 編集中のID（editingId）がある時は、高さ上限をなし(max-h-none)にしてスクロールも消す */}
-<div className={`pr-2 space-y-2 transition-all duration-300 ${
-  editingId ? 'max-h-none' : 'max-h-100 overflow-y-auto'
-}`}>
+                  <div className={`pr-2 space-y-2 transition-all duration-300 ${
+                    editingId ? 'max-h-none' : 'max-h-100 overflow-y-auto'
+                  }`}>
                   {/* 🟢 recommendedMenus の直後に .filter を追加して選択中のタイプだけに絞り込む */}
                   {recommendedMenus
-  .filter(menu => (menu.menu_type || 'main') === selectedManageMenuType)
-  // 🟢 追加：編集中の時は、そのメニュー以外をリストから除外する（画面から消す）
-  .filter(menu => editingId === null || menu.id === editingId)
-  .map((menu) => {
+                    .filter(menu => (menu.menu_type || 'main') === selectedManageMenuType)
+                    // 🟢 追加：編集中の時は、そのメニュー以外をリストから除外する（画面から消す）
+                    .filter(menu => editingId === null || menu.id === editingId)
+                    .map((menu) => {
                       const isEditing = editingId === menu.id;
 
                       return (
@@ -1253,7 +1377,7 @@ useEffect(() => {
                           <div className={`
                             transition-all duration-500 ease-in-out overflow-hidden
                             ${isEditing 
-                              ? 'opacity-100 max-h-[1000px] translate-y-0 pointer-events-auto' 
+                              ? 'opacity-100 max-h-none translate-y-0 pointer-events-auto' 
                               : 'opacity-0 max-h-0 -translate-y-2 pointer-events-none'
                             }
                           `}>
@@ -1326,81 +1450,38 @@ useEffect(() => {
                                 })}
                               </div>
                             </div>
-<div>
-  <div className="flex justify-between items-center mb-2">
-    <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
-      レシピ・メモ：
-    </span>
-    
-    <div className="flex space-x-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
-      <button
-        type="button"
-        onClick={() => setEditingMemoTab('write')}
-        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          editingMemoTab === 'write'
-            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-        }`}
-      >
-        編集
-      </button>
-      <button
-        type="button"
-        onClick={() => setEditingMemoTab('preview')}
-        className={`text-xs px-2.5 py-1 rounded-md font-medium transition ${
-          editingMemoTab === 'preview'
-            ? 'bg-white dark:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm'
-            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-        }`}
-      >
-        プレビュー
-      </button>
-    </div>
-  </div>
+                            <div>
 
-  {editingMemoTab === 'write' ? (
-    <textarea
-      id="editing-memo-textarea"
-      value={editingMemo}
-      onChange={(e) => {
-        setEditingMemo(e.target.value);
-        e.target.style.height = 'auto';
-        e.target.style.height = `${e.target.scrollHeight}px`;
-      }}
-      placeholder="材料や作り方、コツなどを自由にメモ"
-      rows={3}
-      className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden ${inputGlobalStyle} ${currentStyles.input}`}
-    />
-  ) : (
-    <div className={`w-full p-4 border border-dashed rounded-xl min-h-[88px] bg-slate-50/50 dark:bg-zinc-900/50 ${currentStyles.input}`}>
-      {editingMemo ? (
-        <div className="max-w-none text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-          <ReactMarkdown
-            components={{
-              // 🟢 各MarkdownタグがHTMLに変換される瞬間に、Tailwindのクラスを強制注入する魔法
-              ul: ({ ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
-              ol: ({ ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
-              li: ({ ...props }) => <li className="text-slate-700 dark:text-slate-200" {...props} />,
-              h2: ({ ...props }) => <h2 className="text-base font-bold text-slate-800 dark:text-zinc-100 mt-4 mb-2 border-b border-slate-100 dark:border-zinc-850 pb-0.5" {...props} />,
-              h3: ({ ...props }) => <h3 className="text-sm font-bold text-slate-700 dark:text-zinc-200 mt-3 mb-1" {...props} />,
-              blockquote: ({ ...props }) => <blockquote className="border-l-4 border-blue-500 bg-slate-100 dark:bg-zinc-800/60 p-3 my-3 rounded-r-lg font-medium italic text-slate-700 dark:text-slate-200" {...props} />,
-              hr: () => <hr className="my-4 border-slate-200 dark:border-zinc-800" />,
-            }}
-          >
-            {editingMemo}
-          </ReactMarkdown>
-        </div>
-      ) : (
-        <p className="text-xs text-slate-400 italic py-2">メモが入力されていません</p>
-      )}
-    </div>
-  )}
-</div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
+                              レシピ・メモ：
+                            </span>
+                          </div>
+
+                          {/* 🟢 Markdownとプレビュー分岐を完全撤去し、入力欄単体に一本化 */}
+                          <textarea
+                            id="editing-memo-textarea"
+                            value={editingMemo}
+                            onChange={(e) => {
+                              setEditingMemo(e.target.value);
+                              // 👇 入力された文字の高さに合わせて自動リサイズする魔法の2行
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
+                            placeholder="材料や作り方、コツなどを自由にメモ...（エンターキーの改行がそのまま反映されます）"
+                            rows={3}
+                            // 🟢 text-base, leading-snug, whitespace-pre-line を追加して、表示時と100%同じ見栄えに統一
+                            className={`w-full p-3 border rounded-xl focus:outline-blue-500 transition resize-none overflow-hidden text-base leading-snug whitespace-pre-line ${inputGlobalStyle} ${currentStyles.input}`}
+                          />
+
+                        </div>
+                              
+
                             <div className="flex justify-end gap-2 pb-2 mt-2">
                               <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                               <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
                             </div>
-                            <BoundaryPin isEditing={isEditing} />
+                            {/* <BoundaryPin isEditing={isEditing} /> */}
                           </div>
 
                           {/* 通常モード（一覧表示）のレイアウト */}
@@ -1470,44 +1551,58 @@ useEffect(() => {
         )}
       </div>
 
-      {/* 統合型アプリ内確認モーダル */}
+      
+{/* 統合型アプリ内確認モーダル */}
       {modal.show && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-xl w-full shadow-xl border border-slate-100 dark:border-zinc-800 space-y-4">
-            <h3 className={`${currentStyles.sectionTitle} font-bold text-slate-900 dark:text-white`}>
-              {modal.title}
-            </h3>
-            <p className={`text-slate-600 dark:text-white leading-relaxed whitespace-pre-line ${currentStyles.masterText}`}>
+          {/* 🟢 変更①：flex flex-col、max-h-[80vh]、overflow-hidden を追加し、p-6 を排除（枠線と余白の干渉を防ぐため） */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl max-w-xl w-full shadow-xl border border-slate-100 dark:border-zinc-800 flex flex-col max-h-[80vh] overflow-hidden">
+            
+            {/* 🟢 変更②：ヘッダー部分。独立させて、個別にパディング（p-6 pb-3）を設定 */}
+            <div className="p-6 pb-6">
+              <h3 className={`${currentStyles.sectionTitle} font-bold text-slate-900 dark:text-white`}>
+                {modal.title}
+              </h3>
+            </div>
+
+            {/* 🟢 変更③：メッセージ部分。flex-1 と overflow-y-auto でここだけをスクロールさせる。px-6 で横余白を統一 */}
+            <div className={`flex-1 overflow-y-auto px-6 text-slate-600 dark:text-white text-base leading-snug whitespace-pre-line ${currentStyles.masterText}`}>
               {modal.message}
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              {/* 🟢 変更箇所：infoタイプの場合は「確認」ボタン1つだけを表示 */}
+            </div>
+
+            {/* 🟢 変更④：ボタン部分。独立させて、個別にパディング（p-6 pt-3）を設定 */}
+            <div className="flex justify-end gap-2 p-6 pt-3">
+              {/* 🟢 infoタイプの場合は「確認」ボタン1つだけを表示 */}
               {modal.type === 'info' ? (
                 <button 
-                  onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
-                  className={`bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn}`}
+                  onClick={() => setModal({ show: false, type: null, title: '', message: '' })} 
+                  className={`pt-1 pl-3 pr-3 pb-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn}`}
                 >
                   確認
                 </button>
               ) : (
                 <>
                   <button 
-                    onClick={() => setModal({ show: false, type: null, title: '', message: '', data: null })} 
-                    className={`bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-bold text-slate-600 dark:text-white ${currentStyles.masterBtn}`}
+                    onClick={() => setModal({ show: false, type: null, title: '', message: '' })} 
+                    className={`pt-1 pl-3 pr-3 pb-1 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-bold text-slate-600 dark:text-white ${currentStyles.masterBtn}`}
                   >
                     キャンセル
                   </button>
-                  <button 
-                    onClick={handleModalConfirm} 
-                    className={`text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
-                      modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
-                    }`}
-                  >
-                    はい
+                  <button onClick={() => {
+    if (modal.onConfirm) {
+      modal.onConfirm(); // ① 親から実行関数が渡されていれば、それを実行する
+    } 
+  }} 
+  className={`pt-1 pl-3 pr-3 pb-1 text-white rounded-xl font-black shadow-sm ${currentStyles.masterBtn} ${
+    modal.type?.startsWith('delete') ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 dark:bg-emerald-700 hover:bg-emerald-700'
+  }`}
+>
+  はい
                   </button>
                 </>
               )}
             </div>
+
           </div>
         </div>
       )}
