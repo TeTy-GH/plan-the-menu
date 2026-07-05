@@ -671,7 +671,7 @@ useEffect(() => {
     });
   };
 
-  // 🧠 自前で作った Vercel API 経由でレシピを生成する非同期関数
+  // 🧠 自前で作った Vercel API 経由でレシピを生成する非同期関数（デバッグ強化版）
   const handleAiCreateRecipe = async () => {
     if (isAiLoading) return;
     setIsAiLoading(true);
@@ -687,8 +687,16 @@ useEffect(() => {
         })
       });
 
+      // 🔍 200系以外のエラーの場合、ステータスコードとテキストを引っ張り出す
       if (!response.ok) {
-        throw new Error("レシピの生成に失敗しました。");
+        let errorText = "";
+        try {
+          const errorData = await response.json();
+          errorText = errorData.error || JSON.stringify(errorData);
+        } catch {
+          errorText = await response.text();
+        }
+        throw new Error(`サーバーエラー (Status: ${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
@@ -701,14 +709,15 @@ useEffect(() => {
       // ✨ 姿③（貼付け待ち）に変身！
       setExtractedRecipe(recipeText);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("AIレシピ生成エラー:", error);
-      // モーダルを起動
+      
+      // 💡 モーダルのメッセージに、発生したエラーの生の理由を表示させる
       setModal({
         show: true,
         type: 'info',
-        title: '通信エラー',
-        message: 'AIレシピの作成に失敗しました。',
+        title: 'デバッグ：通信エラーの詳細',
+        message: error.message || String(error), // 👈 ここで原因を丸裸にします
       });
     } finally {
       setIsAiLoading(false);
