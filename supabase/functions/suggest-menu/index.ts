@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     // 4. AI処理
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     const genAI = new GoogleGenerativeAI(apiKey || "");
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
     //const prompt = `食材: ${ingredientNames}\n除外(過去7日): ${excludedMenus}\n晩ごはんを1つ提案して。「〇〇はいかがですか？」形式で短く。`;
 
     const prompt = `食材: ${ingredientNames}
