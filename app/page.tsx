@@ -931,7 +931,7 @@ useEffect(() => {
   // ※ もし画像にしたい場合は bg-gradient-to-b ... の代わりに bg-[url('/sunset.jpg')] bg-cover bg-center bg-no-repeat bg-fixed にします
   return (
     <main className="min-h-screen relative text-slate-800 dark:text-slate-100">
-        <div className="fixed inset-0 -z-50 w-full h-full">
+        <div className="fixed inset-0 -z-50 w-full h-full min-h-[100dvh]">
           {/* 実際の画像 */}
           <img 
             src="/images/Gemini_Generated_Image_caadsjcaadsjcaad.png" 
@@ -1042,11 +1042,14 @@ useEffect(() => {
                                 key={ing.id}
                                 //onClick={() => handleToggleIngredient(ing.id)}
                                 {...handlers}
-                                className={`rounded-xl border font-bold transition-all duration-200 ${currentStyles.btn} ${
+                                className={`rounded-xl border font-bold transition-all select-none duration-200 ${currentStyles.btn} ${
                                   isSelected 
                                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
                                     : 'bg-white dark:bg-zinc-950 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
-                                }`}
+                                }`}style={{
+                                  WebkitTouchCallout: 'none', // 🌟 長押し時のiOSメニューを禁止
+                                  touchAction: 'manipulation' // 🌟 ズームやダブルタップの遅延を抑止しスクロールを優先
+                                }}
                               >
                                 {ing.name}
                               </button>
