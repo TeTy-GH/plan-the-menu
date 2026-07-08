@@ -301,17 +301,60 @@ export default function Home() {
     setEditingIngredientCategory(INGREDIENT_CATEGORIES[0]);
     setIsIngModalOpen(true);
   };
-
-  // 💡 長押しを検知する共通関数
+  
+  // 💡 長押し＆スクロール誤爆防止を両立した決定版センサー
   const handleIngredientLongPress = (
     ingredient: any,
     onToggle: () => void,
     onEdit: (targetIng: any) => void
   ) => {  
-    let timer: NodeJS.Timeout;
+    let timer: NodeJS.Timeout | null = null;
     let isLongPress = false;
+    let startX = 0;
+    let startY = 0;
+    let isScrolled = false; // スクロールしたかどうかのフラグ
 
-    const start = () => {
+    // ーーー スマホ（タッチパネル）用の処理 ーーー
+    const handleTouchStart = (e: React.TouchEvent) => {
+      isLongPress = false;
+      isScrolled = false;
+      // タッチした位置を記録（スクロール判定用）
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+
+      timer = setTimeout(() => {
+        isLongPress = true;
+        onEdit(ingredient);
+      }, 600); // 0.6秒長押しで編集
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (!timer) return;
+      
+      // 指が少しでも動いたら（10ピクセル以上）、それは「スクロール」とみなす
+      const moveX = Math.abs(e.touches[0].clientX - startX);
+      const moveY = Math.abs(e.touches[0].clientY - startY);
+      if (moveX > 10 || moveY > 10) {
+        isScrolled = true;
+        if (timer) clearTimeout(timer); // 長押しタイマーを即座に破棄
+      }
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+      if (timer) clearTimeout(timer);
+      
+      // スクロールした場合は、タップ処理（選択トグルの反転）を完全に無視する
+      if (isScrolled) return;
+
+      if (!isLongPress) {
+        onToggle(); // 純粋なタップの時だけ実行
+      } else {
+        e.preventDefault(); // 長押し時はブラウザの挙動をリセット
+      }
+    };
+
+    // ーーー PC（マウス）用の処理 ーーー
+    const handleMouseDown = () => {
       isLongPress = false;
       timer = setTimeout(() => {
         isLongPress = true;
@@ -319,8 +362,8 @@ export default function Home() {
       }, 600);
     };
 
-    const stop = (e: any) => {
-      clearTimeout(timer);
+    const handleMouseUp = (e: React.MouseEvent) => {
+      if (timer) clearTimeout(timer);
       if (!isLongPress) {
         onToggle();
       } else {
@@ -329,10 +372,11 @@ export default function Home() {
     };
 
     return {
-      onMouseDown: start,
-      onMouseUp: stop,
-      onTouchStart: start,
-      onTouchEnd: stop,
+      onMouseDown: handleMouseDown,
+      onMouseUp: handleMouseUp,
+      onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove, // 🌟 これでスクロールを監視！
+      onTouchEnd: handleTouchEnd,
     };
   };
 
