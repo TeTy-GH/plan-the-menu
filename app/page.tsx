@@ -293,6 +293,10 @@ export default function Home() {
   const [ingModalMode, setIngModalMode] = useState<'add' | 'edit'>('add'); // 👈 モード変数を追加！
   const [selectedIngForModal, setSelectedIngForModal] = useState<any | null>(null);
 
+  let longPressTimer: NodeJS.Timeout | null = null;
+  let isLongPressActive = false;
+  let touchStartY = 0;
+
   // 2. 「新規追加」ボタンが押された時の処理
   const handleOpenAddIngredient = () => {
     setIngModalMode('add');        // 👈 モードを明示的に 'add' に！
@@ -301,7 +305,28 @@ export default function Home() {
     setEditingIngredientCategory(INGREDIENT_CATEGORIES[0]);
     setIsIngModalOpen(true);
   };
-  
+
+  // 💡 関数本体をこれに差し替えます
+  const handleIngredientTouchStart = (e: React.TouchEvent, ingredient: any, onEdit: (target: any) => void) => {
+    isLongPressActive = false;
+    touchStartY = e.touches[0].clientY; // タッチした縦位置を記録
+
+    longPressTimer = setTimeout(() => {
+      isLongPressActive = true;
+      onEdit(ingredient);
+    }, 600); // 0.6秒長押しで小窓
+  };
+
+  const handleIngredientTouchMove = (e: React.TouchEvent) => {
+    if (!longPressTimer) return;
+    // 縦に10px以上スクロールしたら、長押しタイマーを完全にリセット（誤爆防止）
+    const currentY = e.touches[0].clientY;
+    if (Math.abs(currentY - touchStartY) > 10) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  };
+
   // 💡 長押し＆スクロール誤爆防止を両立した決定版センサー
   const handleIngredientLongPress = (
     ingredient: any,
@@ -1083,17 +1108,40 @@ useEffect(() => {
                             
                             return (
                               <button
-                                key={ing.id}
-                                //onClick={() => handleToggleIngredient(ing.id)}
-                                {...handlers}
-                                className={`rounded-xl border font-bold transition-all select-none duration-200 ${currentStyles.btn} ${
-                                  isSelected 
-                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
-                                    : 'bg-white dark:bg-zinc-950 text-slate-700 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
-                                }`}style={{
-                                  WebkitTouchCallout: 'none', // 🌟 長押し時のiOSメニューを禁止
-                                  touchAction: 'manipulation' // 🌟 ズームやダブルタップの遅延を抑止しスクロールを優先
-                                }}
+                                key={ing.id}// 🟢 スマホ（タッチ）用のイベント
+      onTouchStart={(e) => handleIngredientTouchStart(e, ing, (target) => {
+        setSelectedIngForModal(target);
+        setEditingText(target.name);
+        setEditingIngredientCategory(target.category);
+        setIngModalMode('edit');
+        setIsIngModalOpen(true);
+      })}
+      onTouchMove={handleIngredientTouchMove}
+      onTouchEnd={(e) => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+        // 長押しが発火していなければ、純粋なタップとしてトグルを動かす
+        if (!isLongPressActive) {
+          handleToggleIngredient(ing.id); // 🌟 お使いの選択反転関数名に合わせてください
+        } else {
+          e.preventDefault();
+        }
+      }}
+      // 🟢 PC（マウス）用のイベント（不要なら onClick={...} だけでもOKですが一応残す場合）
+      onClick={() => {
+        // スマホでonClickが重複発火するのを防ぐため、PC操作時のみ動くように
+        if (window.matchMedia('(pointer: fine)').matches) {
+          handleToggleIngredient(ing.id);
+        }
+      }}
+      className={`rounded-xl border font-bold transition select-none ${currentStyles.masterBtn} ${
+        isTarget 
+          ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
+          : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'
+      }`}
+      style={{
+        WebkitTouchCallout: 'none',
+        touchAction: 'pan-y' // 🌟 縦スクロールのみブラウザ標準の動きを許可して滑らかに
+      }}
                               >
                                 {ing.name}
                               </button>
