@@ -1092,6 +1092,7 @@ useEffect(() => {
                         <div className="flex flex-wrap gap-2">
                           {filteredIngredients.map(ing => {
                             const isSelected = selectedIngredients.includes(ing.id);
+                            const isTarget = selectedIngredients.includes(ing.id);
 
                             // 🌟 上で定義した共通関数をここでスマートに呼び出すだけ！
                             const handlers = handleIngredientLongPress(
@@ -1125,6 +1126,7 @@ useEffect(() => {
         } else {
           e.preventDefault();
         }
+        isLongPressActive = false;
       }}
       // 🟢 PC（マウス）用のイベント（不要なら onClick={...} だけでもOKですが一応残す場合）
       onClick={() => {
