@@ -111,8 +111,110 @@ function BoundaryPin({ isEditing }: { isEditing: boolean }) {
   return <div ref={ref} className="h-0 w-full" />;
   */
 }
+interface IngredientModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  mode: 'add' | 'edit'; // 🌟 mode を追加
+  editingText: string;
+  setEditingText: (val: string) => void;
+  editingCategory: string; // 🌟 親の editingIngredientCategory をこれで受け取る
+  setEditingCategory: (val: any) => void;
+  INGREDIENT_CATEGORIES: readonly string[];
+  onSave: () => void;
+  onDelete?: () => void;
+  currentStyles: any;
+  inputGlobalStyle: string;
+}
 
+function IngredientModal({
+  isOpen,
+  onClose,
+  mode,
+  editingText,
+  setEditingText,
+  editingCategory,
+  setEditingCategory,
+  INGREDIENT_CATEGORIES,
+  onSave,
+  onDelete,
+  currentStyles,
+  inputGlobalStyle
+}: IngredientModalProps) {
+  if (!isOpen) return null;
 
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-zinc-900 w-full max-w-md p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* ヘッダー部分 */}
+        <h3 className="text-lg font-black text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+          {mode === 'edit' ? '🥦 食材の編集' : '✨ 食材の登録'}
+        </h3>
+
+        {/* フォーム入力エリア */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">食材名</label>
+            <input
+              type="text"
+              value={editingText}
+              onChange={(e) => setEditingText(e.target.value)}
+              placeholder="例: じゃがいも"
+              className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles?.input || ''}`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">カテゴリ</label>
+            <select
+              value={editingCategory}
+              onChange={(e) => setEditingCategory(e.target.value)}
+              className={`w-full border rounded-xl focus:outline-blue-500 transition cursor-pointer font-black ${inputGlobalStyle} ${currentStyles?.input || ''}`}
+            >
+              {INGREDIENT_CATEGORIES.map(cat => (
+                <option key={cat} value={cat} className="font-black">{cat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* ボタンエリア */}
+        <div className="flex items-center justify-between mt-6 gap-2">
+          {/* 編集モードの時だけ左側に削除ボタンを表示 */}
+          {mode === 'edit' && onDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-xl font-bold px-4 py-2 transition"
+            >
+              削除
+            </button>
+          ) : (
+            <div /> // 新規時はスペースを保つためのダミー
+          )}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-slate-300 rounded-xl font-bold px-4 py-2 hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black px-5 py-2 shadow-sm transition"
+            >
+              保存
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
 
 
 
@@ -186,6 +288,54 @@ export default function Home() {
   const [aiCount, setAiCount] = useState<number>(0); // おかわりガチャの回数カウント
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false); // 通信中（レシピ作成中...）のフラグ
   const [extractedRecipe, setExtractedRecipe] = useState<string | null>(null); // AIが生成したレシピの一時保持
+  
+  const [isIngModalOpen, setIsIngModalOpen] = useState(false);
+  const [ingModalMode, setIngModalMode] = useState<'add' | 'edit'>('add'); // 👈 モード変数を追加！
+  const [selectedIngForModal, setSelectedIngForModal] = useState<any | null>(null);
+
+  // 2. 「新規追加」ボタンが押された時の処理
+  const handleOpenAddIngredient = () => {
+    setIngModalMode('add');        // 👈 モードを明示的に 'add' に！
+    setSelectedIngForModal(null);
+    setEditingText('');
+    setEditingIngredientCategory(INGREDIENT_CATEGORIES[0]);
+    setIsIngModalOpen(true);
+  };
+
+  // 💡 長押しを検知する共通関数
+  const handleIngredientLongPress = (
+    ingredient: any,
+    onToggle: () => void,
+    onEdit: (targetIng: any) => void
+  ) => {  
+    let timer: NodeJS.Timeout;
+    let isLongPress = false;
+
+    const start = () => {
+      isLongPress = false;
+      timer = setTimeout(() => {
+        isLongPress = true;
+        onEdit(ingredient);
+      }, 600);
+    };
+
+    const stop = (e: any) => {
+      clearTimeout(timer);
+      if (!isLongPress) {
+        onToggle();
+      } else {
+        e.preventDefault();
+      }
+    };
+
+    return {
+      onMouseDown: start,
+      onMouseUp: stop,
+      onTouchStart: start,
+      onTouchEnd: stop,
+    };
+  };
+
   const openMemoModal = (menu: Menu) => {
     setViewingMemoMenu(menu);
   };
@@ -418,6 +568,7 @@ useEffect(() => {
         if (!ingError) {
           setSelectedIngredients(prev => prev.filter(item => item !== id));
           setRefreshTrigger(prev => prev + 1);
+          setIsIngModalOpen(false);
         }
         setMasterLoading(false);
         setModal({ show: false, type: null, title: '', message: '', onConfirm: undefined });
@@ -443,9 +594,8 @@ useEffect(() => {
     });
   };
 
-  const handleRegisterIngredient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = newIngredientName.trim(); // 共通で使えるように変数化
+  const handleRegisterIngredient = async () => {
+    const trimmedName = editingText.trim(); // 共通で使えるように変数化
     if (!trimmedName) return;
 
     setMasterLoading(true);
@@ -471,12 +621,12 @@ useEffect(() => {
     // 重複がなければ登録
     const { error } = await supabase
       .from('ingredients')
-      .insert([{ name: trimmedName, category: newIngredientCategory }]);
+      .insert([{ name: trimmedName, category: editingIngredientCategory }]);
 
     if (!error) {
       setNewIngredientName('');
-      setNewIngredientCategory('その他');
       setRefreshTrigger(prev => prev + 1);
+      setIsIngModalOpen(false);
     }
     setMasterLoading(false);
   };
@@ -543,16 +693,41 @@ useEffect(() => {
   };
 
   const handleUpdateIngredient = async (id: string) => {
-    if (!editingText.trim()) return;
+    const trimmedName = editingText.trim();
+    if (!trimmedName) return;
+
+    setMasterLoading(true);
+
+    // 🟢 1. 編集後の名前が、すでに他の食材で使われていないかチェック
+    const { data: existingIng } = await supabase
+      .from('ingredients')
+      .select('id')
+      .eq('name', trimmedName)
+      .neq('id', id) // ✨ ここが重要！「自分以外の食材」という条件を指定
+      .maybeSingle();
+
+    if (existingIng) {
+      setMasterLoading(false);
+      setModal({
+        show: true,
+        type: 'info',
+        title: '更新エラー',
+        message: `食材「${trimmedName}」はすでに登録されています。`,
+      });
+      return; // ⚠️ ここで処理を中断することで、小窓が消えずに残ります！
+    }
+
+    // 🟢 2. 重複がなければアップデートを実行
     const { error } = await supabase
       .from('ingredients')
-      .update({ name: editingText.trim(), category: editingIngredientCategory })
+      .update({ name: trimmedName, category: editingIngredientCategory })
       .eq('id', id);
 
     if (!error) {
-      setEditingId(null);
       setRefreshTrigger(prev => prev + 1);
+      setIsIngModalOpen(false); // 🎉 更新が「成功した時だけ」ここで小窓を閉じる！
     }
+    setMasterLoading(false);
   };
 
   const handleStartEditMenu = async (menu: Menu) => {
@@ -819,6 +994,14 @@ useEffect(() => {
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
                   🥦 使いたい食材
                 </h2>
+                <button
+                  type="button"
+                  onClick={handleOpenAddIngredient} // 👈 先ほど作った新規用の関数を呼ぶ
+                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm"
+                  title="食材を新規登録"
+                >
+                  <span className="text-xl font-black leading-none">+</span>
+                </button>
                 {selectedIngredients.length > 0 && (
                   <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
                     ＜選択クリア＞
@@ -840,10 +1023,25 @@ useEffect(() => {
                         <div className="flex flex-wrap gap-2">
                           {filteredIngredients.map(ing => {
                             const isSelected = selectedIngredients.includes(ing.id);
+
+                            // 🌟 上で定義した共通関数をここでスマートに呼び出すだけ！
+                            const handlers = handleIngredientLongPress(
+                              ing, 
+                              () => handleToggleIngredient(ing.id), 
+                              (targetIng: Ingredient) => {
+                                setIngModalMode('edit');       // ① モードを編集に
+                                setSelectedIngForModal(targetIng); // ② 長押しされた食材データをセット
+                                setEditingText(targetIng.name);    // ③ 入力欄に現在の名前を反映
+                                setEditingIngredientCategory(targetIng.category); // ④ カテゴリも反映
+                                setIsIngModalOpen(true);           // ⑤ 小窓をオープン！
+                              }
+                            );
+                            
                             return (
                               <button
                                 key={ing.id}
-                                onClick={() => handleToggleIngredient(ing.id)}
+                                //onClick={() => handleToggleIngredient(ing.id)}
+                                {...handlers}
                                 className={`rounded-xl border font-bold transition-all duration-200 ${currentStyles.btn} ${
                                   isSelected 
                                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-95 dark:bg-white dark:text-black dark:border-white' 
@@ -1085,8 +1283,9 @@ useEffect(() => {
           <div className="space-y-8">
             
             {/* 登録フォームエリア */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* 食材単体のマスタ登録 */}
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                {/*
+              
               <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>
                   🥦 食材の追加
@@ -1128,6 +1327,7 @@ useEffect(() => {
                   </button>
                 </form>
               </div>
+                */}
 
               {/* メニューマスタ登録 */}
               <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
@@ -1270,9 +1470,36 @@ useEffect(() => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             {/* 下段：既存データの編集・削除リストエリア */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
               {/* 食材の一覧・編集・削除 */}
+              {/*
               <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 border-b dark:border-zinc-800 pb-2`}>
                   🥦 食材の編集・削除
@@ -1337,7 +1564,6 @@ useEffect(() => {
                                   </div>
                                 </div>
                               </div>
-                              {/* <BoundaryPin isEditing={editingId === ing.id} /> */}
                             </div>
                           ))}
                         </div>
@@ -1346,6 +1572,7 @@ useEffect(() => {
                   })}
                 </div>
               </div>
+              */}
 
               {/* メニューの一覧・編集・削除 */}
               <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-3">
@@ -1562,8 +1789,33 @@ useEffect(() => {
         )}
       </div>
 
-      
-{/* 統合型アプリ内確認モーダル */}
+      <IngredientModal
+        isOpen={isIngModalOpen}
+        onClose={() => setIsIngModalOpen(false)}
+        mode={ingModalMode}
+        editingText={editingText}
+        setEditingText={setEditingText} 
+        editingCategory={editingIngredientCategory} 
+        setEditingCategory={setEditingIngredientCategory} 
+        INGREDIENT_CATEGORIES={INGREDIENT_CATEGORIES} 
+        currentStyles={currentStyles} 
+        inputGlobalStyle={inputGlobalStyle} 
+        onSave={() => {
+          if (ingModalMode === 'edit') {
+            handleUpdateIngredient(selectedIngForModal.id);
+          } else {
+            handleRegisterIngredient();
+          }
+          
+        }}
+        onDelete={() => {
+          if (selectedIngForModal) {
+            triggerDeleteIngredientModal(selectedIngForModal.id, selectedIngForModal.name);
+          }
+        }}
+      />
+
+      {/* 統合型アプリ内確認モーダル */}
       {modal.show && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           {/* 🟢 変更①：flex flex-col、max-h-[80vh]、overflow-hidden を追加し、p-6 を排除（枠線と余白の干渉を防ぐため） */}
