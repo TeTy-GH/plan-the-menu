@@ -1099,23 +1099,38 @@ useEffect(() => {
           </div>
         </div>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
         {/* ----------------- 画面1: メインアプリ ----------------- */}
         {viewMode === 'main' && (
           <>
             {/* 使いたい食材 */}
             <div className="bg-white/70 dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
-                  🥦 使いたい食材
-                </h2>
-                <button
-                  type="button"
-                  onClick={handleOpenAddIngredient} // 👈 先ほど作った新規用の関数を呼ぶ
-                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm"
-                  title="食材を新規登録"
-                >
-                  <span className="text-xl font-black leading-none">+</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
+                    🥦 使いたい食材
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={handleOpenAddIngredient} // 👈 先ほど作った新規用の関数を呼ぶ
+                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm"
+                    title="食材を新規登録"
+                  >
+                    <span className="text-xl font-black leading-none">+</span>
+                  </button>
+                </div>
                 {selectedIngredients.length > 0 && (
                   <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
                     ＜選択クリア＞
@@ -1155,72 +1170,72 @@ useEffect(() => {
                             return (
                               <button
                                 key={ing.id}// 🟢 スマホ・タブレット（タッチ）用
-  onTouchStart={(e) => handleIngredientStart(e, ing, (target) => {
-    setSelectedIngForModal(target);
-    setEditingText(target.name);
-    setEditingIngredientCategory(target.category);
-    setIngModalMode('edit');
-    setIsIngModalOpen(true);
-  })}
-  onTouchMove={handleIngredientMove}
-  onTouchEnd={(e) => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    
-    if (isScrolling.current) {
-      e.preventDefault();
-      isScrolling.current = false;
-      isLongPressActive.current = false;
-      return;
-    }
-    if (!isLongPressActive.current) {
-      handleToggleIngredient(ing.id);
-    } else {
-      e.preventDefault();
-    }
-    isLongPressActive.current = false;
-  }}
+                                onTouchStart={(e) => handleIngredientStart(e, ing, (target) => {
+                                  setSelectedIngForModal(target);
+                                  setEditingText(target.name);
+                                  setEditingIngredientCategory(target.category);
+                                  setIngModalMode('edit');
+                                  setIsIngModalOpen(true);
+                                })}
+                                onTouchMove={handleIngredientMove}
+                                onTouchEnd={(e) => {
+                                  if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                                  
+                                  if (isScrolling.current) {
+                                    e.preventDefault();
+                                    isScrolling.current = false;
+                                    isLongPressActive.current = false;
+                                    return;
+                                  }
+                                  if (!isLongPressActive.current) {
+                                    handleToggleIngredient(ing.id);
+                                  } else {
+                                    e.preventDefault();
+                                  }
+                                  isLongPressActive.current = false;
+                                }}
 
-  // 🔵 PC（マウス）用
-  onMouseDown={(e) => {
-    if (e.button !== 0) return; // 左クリックのみ
-    handleIngredientStart(e, ing, (target) => {
-      setSelectedIngForModal(target);
-      setEditingText(target.name);
-      setEditingIngredientCategory(target.category);
-      setIngModalMode('edit');
-      setIsIngModalOpen(true);
-    });
-  }}
-  onMouseMove={handleIngredientMove} // マウスを押し下げたまま動かした時のキャンセル用
-  onMouseUp={() => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  }}
-  onMouseLeave={() => {
-    // ボタンの外にカーソルが出たらタイマーを解除
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  }}
+                                // 🔵 PC（マウス）用
+                                onMouseDown={(e) => {
+                                  if (e.button !== 0) return; // 左クリックのみ
+                                  handleIngredientStart(e, ing, (target) => {
+                                    setSelectedIngForModal(target);
+                                    setEditingText(target.name);
+                                    setEditingIngredientCategory(target.category);
+                                    setIngModalMode('edit');
+                                    setIsIngModalOpen(true);
+                                  });
+                                }}
+                                onMouseMove={handleIngredientMove} // マウスを押し下げたまま動かした時のキャンセル用
+                                onMouseUp={() => {
+                                  if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                                }}
+                                onMouseLeave={() => {
+                                  // ボタンの外にカーソルが出たらタイマーを解除
+                                  if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                                }}
 
-  // 🟢 PC（マウス）用のクリックイベント
-  onClick={() => {
-    // マウス操作、かつ長押しが発火していなかった場合のみトグルを動かす
-    if (window.matchMedia('(pointer: fine)').matches) {
-      if (!isLongPressActive.current) {
-        handleToggleIngredient(ing.id);
-      }
-      isLongPressActive.current = false; // フラグをリセット
-    }
-  }}
+                                // 🟢 PC（マウス）用のクリックイベント
+                                onClick={() => {
+                                  // マウス操作、かつ長押しが発火していなかった場合のみトグルを動かす
+                                  if (window.matchMedia('(pointer: fine)').matches) {
+                                    if (!isLongPressActive.current) {
+                                      handleToggleIngredient(ing.id);
+                                    }
+                                    isLongPressActive.current = false; // フラグをリセット
+                                  }
+                                }}
 
-  className={`rounded-xl border font-bold transition select-none ${currentStyles.masterBtn} ${
-    isTarget 
-      ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
-      : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'
-  }`}
-  style={{
-    WebkitTouchCallout: 'none',
-    touchAction: 'pan-y'
-  }}
->
+                                className={`rounded-xl border font-bold transition select-none ${currentStyles.masterBtn} ${
+                                  isTarget 
+                                    ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
+                                    : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'
+                                }`}
+                                style={{
+                                  WebkitTouchCallout: 'none',
+                                  touchAction: 'pan-y'
+                                }}
+                              >
                                 {ing.name}
                               </button>
                             );
@@ -1244,16 +1259,6 @@ useEffect(() => {
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
                   </h2>
                   
-                  {/* 🟢 再提案ボタンを「おすすめメニュー」の右に右寄せで配置 */}
-                  {aiMenuTitle !== null && (
-                    <button
-                      onClick={() => aiSuggesterRef.current?.handleAiSuggest()}
-                      disabled={aiLoading}
-                      className={`${currentStyles.masterText} py-[0.4em] px-[0.8em] rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
-                    >
-                      {aiLoading ? '🔄 考案中...' : '🔄 再提案'}
-                    </button>
-                  )}
                 </div>
 
                 <AiMenuSuggester 
@@ -1267,29 +1272,29 @@ useEffect(() => {
                   currentStyles={currentStyles}
                   onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
                 />
-                  <div className="flex items-center gap-5">
-                    {/* 🟢 追加：メニュータイプ（主菜・副菜）切り替えボタン */}
-                    <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
-                      <button 
-                        onClick={() => setSelectedMenuType('main')} 
-                        className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'main' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
-                      >
-                        🍗 主菜
-                      </button>
-                      <button 
-                        onClick={() => setSelectedMenuType('side')} 
-                        className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'side' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
-                      >
-                        🥗 副菜
-                      </button>
-                    </div>
-
-                    {/* 既存の並び替えボタン */}
-                    <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
-                      <button onClick={() => setSortMode('score')} className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>おすすめ</button>
-                      <button onClick={() => setSortMode('history')} className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>調理履歴</button>
-                    </div>
+                <div className="flex items-center gap-5">
+                  {/* 🟢 追加：メニュータイプ（主菜・副菜）切り替えボタン */}
+                  <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
+                    <button 
+                      onClick={() => setSelectedMenuType('main')} 
+                      className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'main' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
+                    >
+                      🍗 主菜
+                    </button>
+                    <button 
+                      onClick={() => setSelectedMenuType('side')} 
+                      className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${selectedMenuType === 'side' ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow' : 'text-slate-500'}`}
+                    >
+                      🥗 副菜
+                    </button>
                   </div>
+
+                  {/* 既存の並び替えボタン */}
+                  <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
+                    <button onClick={() => setSortMode('score')} className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'score' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>おすすめ</button>
+                    <button onClick={() => setSortMode('history')} className={`whitespace-nowrap px-2 py-1 rounded ${currentStyles.score} ${sortMode === 'history' ? ' text-black dark:text-white bg-white dark:bg-stone-950 shadow' : 'text-slate-500'}`}>調理履歴</button>
+                  </div>
+                </div>
                 
                 <div className="pb-10 overflow-y-auto max-h-130 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner space-y-3">
                   {loading ? (

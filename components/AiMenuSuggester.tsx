@@ -99,7 +99,17 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
           </h3>
         </div>
       </div>
-
+{aiMenuTitle !== null && (
+    <button
+      type="button"
+      onClick={handleAiSuggest}
+      disabled={loading}
+      {/* 💡 ヘッダーに収まるよう、少しコンパクトなパディング(py-1.5 px-3)に調整しています */}
+      className={`${currentStyles.masterText} py-1.5 px-3 rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm`}
+    >
+      {loading ? '🔄 考案中...' : '🔄 再提案'}
+    </button>
+  )}
       {/* 2. 提案内容（AI解答欄） */}
       <div className="p-4 bg-slate-50 dark:bg-stone-950 rounded-xl border border-dashed border-slate-200 dark:border-zinc-700 min-h-[90px] flex items-center justify-center transition-all">
         {loading ? (
