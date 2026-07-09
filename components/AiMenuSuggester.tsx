@@ -88,30 +88,26 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
   const description = hasSlash ? aiMenuTitle.split(' / ')[1].trim() : '';
 
   return (
-    <div className="mb-2 w-full p-5 bg-white dark:bg-stone-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-4">
-      
+    <div className="mb-2 w-full p-5 bg-white dark:bg-stone-900/80 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-4">
       {/* 1. 見出し */}
-      <div className="flex items-center gap-2 pb-1 border-b border-slate-100 dark:border-zinc-800">
-        <span className={`${currentStyles.title}`}>✨</span>
-        <div>
-          <h3 className={`font-black text-slate-800 dark:text-zinc-100 ${currentStyles.title}`}>
-            AI Gemini のおすすめ
-          </h3>
-        </div>
+      <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-zinc-800">
+        <h3 className={`font-black text-slate-800 dark:text-zinc-100 ${currentStyles.title}`}>
+          ✨ AI Gemini のおすすめ
+        </h3>
+        {aiMenuTitle !== null && (
+          <button
+            type="button"
+            onClick={handleAiSuggest}
+            disabled={loading}
+            className={`${currentStyles.masterText} dynamic-chalk py-1.5 px-2 rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm`}
+          >
+            {loading ? '🔄 考案中...' : '🔄 再提案'}
+          </button>
+        )}
       </div>
-      {aiMenuTitle !== null && (
-        <button
-          type="button"
-          onClick={handleAiSuggest}
-          disabled={loading}
-          className={`${currentStyles.masterText} py-1.5 px-3 rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm`}
-        >
-          {loading ? '🔄 考案中...' : '🔄 再提案'}
-        </button>
-      )}
 
       {/* 2. 提案内容（AI解答欄） */}
-      <div className="p-4 bg-slate-50 dark:bg-stone-950 rounded-xl border border-dashed border-slate-200 dark:border-zinc-700 min-h-[90px] flex items-center justify-center transition-all">
+      <div className="p-4 bg-slate-50 dark:bg-stone-950 rounded border-4 border-slate-200 dark:border-amber-200/50 min-h-[90px] flex items-center justify-center transition-all">
         {loading ? (
           <div className={`flex items-center gap-2 text-indigo-600 dark:text-indigo-400 ${currentStyles.score} font-medium animate-pulse`}>
             <span className="animate-spin">✨</span>
@@ -123,10 +119,12 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
           </div>
         ) : aiMenuTitle !== null ? (
           <div className="text-center w-full space-y-2">
-            <span className={`${currentStyles.score} text-indigo-500 font-bold uppercase tracking-wider block`}>Today's Menu</span>
+            <span style={{ fontFamily: '"Kiwi Maru", serif' }} className={`${currentStyles.score} dynamic-chalk text-indigo-500 font-bold uppercase tracking-wider block`}>
+              Today's Menu
+            </span>
             
             {/* メニュー名のセンタリング表示 */}
-            <p className={`${currentStyles.title} font-black text-slate-800 dark:text-zinc-100 text-center`}>
+            <p style={{ fontFamily: '"Kiwi Maru", serif' }} className={`${currentStyles.title} font-black text-slate-800 dark:text-zinc-100 text-center`}>
               {dishName}
             </p>
             
@@ -137,7 +135,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
             
             {/* 🟢 紹介文の表示（一瞬で読めるスマートなスタイル） */}
             {description && (
-              <p className={`${currentStyles.score} text-slate-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto text-center font-medium`}>
+              <p style={{ fontFamily: '"Kiwi Maru", serif' }} className={`${currentStyles.score} text-slate-600 dark:text-zinc-400 leading-relaxed max-w-md mx-auto text-center font-medium`}>
                 {description}
               </p>
             )}
@@ -150,16 +148,18 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
       </div>
 
       {/* 3. 🟢 解答欄の次（下）に「レシピを探す」ボタンを配置 */}
-      {aiMenuTitle !== null && !loading && (
-        <a
-          href={`https://www.google.com/search?q=${encodeURIComponent(dishName + ' レシピ (クックパッド OR クラシル)')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${currentStyles.score} flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/80 border border-indigo-100 dark:border-indigo-900/60 transition shadow-sm`}
-        >
-          🍳 「{dishName}」のレシピを探す
-        </a>
-      )}
+      <div className="flex justify-center">
+        {aiMenuTitle !== null && !loading && (
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(dishName + ' レシピ (クックパッド OR クラシル)')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${currentStyles.score} flex items-center w-[50%] justify-center gap-1.5 py-2.5 rounded-xl font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/50 dark:hover:bg-indigo-950/90 border border-indigo-100 dark:border-indigo-900/70 transition shadow-sm`}
+          >
+            🍳 「{dishName}」のレシピを探す
+          </a>
+        )}
+      </div>
     </div>
   );
 });

@@ -1115,8 +1115,22 @@ useEffect(() => {
         {/* ----------------- 画面1: メインアプリ ----------------- */}
         {viewMode === 'main' && (
           <>
+
+                <AiMenuSuggester 
+                  ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
+                  selectedIngredients={selectedIngredients}
+                  aiMenuTitle={aiMenuTitle} 
+                  onSuggestionReceived={(newMenu) => {
+                    console.log("親で受信！:", newMenu.title);
+                    setAiMenuTitle(newMenu.title);
+                  }}
+                  currentStyles={currentStyles}
+                  onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
+                />
+                
             {/* 使いたい食材 */}
             <div className="bg-white/70 dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+            
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
@@ -1125,7 +1139,7 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={handleOpenAddIngredient} // 👈 先ほど作った新規用の関数を呼ぶ
-                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm"
+                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm border dark:border-zinc-700"
                     title="食材を新規登録"
                   >
                     <span className="text-xl font-black leading-none">+</span>
@@ -1261,17 +1275,6 @@ useEffect(() => {
                   
                 </div>
 
-                <AiMenuSuggester 
-                  ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
-                  selectedIngredients={selectedIngredients}
-                  aiMenuTitle={aiMenuTitle} 
-                  onSuggestionReceived={(newMenu) => {
-                    console.log("親で受信！:", newMenu.title);
-                    setAiMenuTitle(newMenu.title);
-                  }}
-                  currentStyles={currentStyles}
-                  onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
-                />
                 <div className="flex items-center gap-5">
                   {/* 🟢 追加：メニュータイプ（主菜・副菜）切り替えボタン */}
                   <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
