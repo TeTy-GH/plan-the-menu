@@ -154,7 +154,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
             href={`https://www.google.com/search?q=${encodeURIComponent(dishName + ' レシピ (クックパッド OR クラシル)')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${currentStyles.score} flex items-center w-[50%] justify-center gap-1.5 py-2.5 rounded-xl font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/50 dark:hover:bg-indigo-950/90 border border-indigo-100 dark:border-indigo-900/70 transition shadow-sm`}
+            className={`${currentStyles.score} flex items-center px-6 justify-center gap-1.5 py-2.5 rounded-xl font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-950/50 dark:hover:bg-indigo-950/90 border border-indigo-100 dark:border-indigo-900/70 transition shadow-sm`}
           >
             🍳 「{dishName}」のレシピを探す
           </a>
