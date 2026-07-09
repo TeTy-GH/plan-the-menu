@@ -107,7 +107,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
       </div>
 
       {/* 2. 提案内容（AI解答欄） */}
-      <div className="p-4 bg-slate-50 dark:bg-stone-950 rounded border-4 border-slate-200 dark:border-amber-200/50 min-h-[90px] flex items-center justify-center transition-all">
+      <div className="p-4 bg-slate-50 dark:bg-stone-950 rounded border-4 border-slate-200 dark:border-amber-200/40 min-h-[90px] flex items-center justify-center transition-all">
         {loading ? (
           <div className={`flex items-center gap-2 text-indigo-600 dark:text-indigo-400 ${currentStyles.score} font-medium animate-pulse`}>
             <span className="animate-spin">✨</span>
