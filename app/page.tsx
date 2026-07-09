@@ -296,6 +296,7 @@ export default function Home() {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPressActive = useRef<boolean>(false);
   const startY = useRef<number>(0);
+  const isScrolling = useRef<boolean>(false);
 
 //  let longPressTimer: NodeJS.Timeout | null = null;
 //  let isLongPressActive = false;
@@ -310,38 +311,45 @@ export default function Home() {
     setIsIngModalOpen(true);
   };
 
+// 🟢 開始処理
 const handleIngredientStart = (
   e: React.TouchEvent | React.MouseEvent,
   ingredient: any,
   onEdit: (target: any) => void
 ) => {
   isLongPressActive.current = false;
+  isScrolling.current = false; // 押し始めた時は一回リセット
 
-  // タッチなら touches[0].clientY、マウスなら clientY を取得
   const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
   startY.current = clientY;
 
-  // タイマーをクリアしてからセット
   if (longPressTimer.current) clearTimeout(longPressTimer.current);
 
   longPressTimer.current = setTimeout(() => {
+    // スクロール中なら長押しモーダルは開かない
+    if (isScrolling.current) return;
     isLongPressActive.current = true;
     onEdit(ingredient);
-  }, 600); // 0.6秒
+  }, 600);
 };
 
-// 🟢 動いた時の処理（タッチ・マウス共通）
+// 🟢 動いた時の処理
 const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
   if (!longPressTimer.current) return;
 
   const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-  // 10px以上動いたら長押しをキャンセル
+  // 10px以上動いたら「これはスクロール操作だ」と判定
   if (Math.abs(clientY - startY.current) > 10) {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    longPressTimer.current = null;
+    isScrolling.current = true; // 🌟 スクロール中フラグを立てる
+    
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   }
 };
+
 /*
   // 💡 関数本体をこれに差し替えます
   const handleIngredientTouchStart = (e: React.TouchEvent, ingredient: any, onEdit: (target: any) => void) => {
@@ -1158,6 +1166,12 @@ useEffect(() => {
   onTouchEnd={(e) => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     
+    if (isScrolling.current) {
+      e.preventDefault();
+      isScrolling.current = false;
+      isLongPressActive.current = false;
+      return;
+    }
     if (!isLongPressActive.current) {
       handleToggleIngredient(ing.id);
     } else {
