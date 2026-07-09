@@ -293,8 +293,12 @@ export default function Home() {
   const [ingModalMode, setIngModalMode] = useState<'add' | 'edit'>('add'); // 👈 モード変数を追加！
   const [selectedIngForModal, setSelectedIngForModal] = useState<any | null>(null);
 
-  let longPressTimer: NodeJS.Timeout | null = null;
-  let isLongPressActive = false;
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressActive = useRef<boolean>(false);
+  const startY = useRef<number>(0);
+
+//  let longPressTimer: NodeJS.Timeout | null = null;
+//  let isLongPressActive = false;
   let touchStartY = 0;
 
   // 2. 「新規追加」ボタンが押された時の処理
@@ -306,6 +310,39 @@ export default function Home() {
     setIsIngModalOpen(true);
   };
 
+const handleIngredientStart = (
+  e: React.TouchEvent | React.MouseEvent,
+  ingredient: any,
+  onEdit: (target: any) => void
+) => {
+  isLongPressActive.current = false;
+
+  // タッチなら touches[0].clientY、マウスなら clientY を取得
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+  startY.current = clientY;
+
+  // タイマーをクリアしてからセット
+  if (longPressTimer.current) clearTimeout(longPressTimer.current);
+
+  longPressTimer.current = setTimeout(() => {
+    isLongPressActive.current = true;
+    onEdit(ingredient);
+  }, 600); // 0.6秒
+};
+
+// 🟢 動いた時の処理（タッチ・マウス共通）
+const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
+  if (!longPressTimer.current) return;
+
+  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+  // 10px以上動いたら長押しをキャンセル
+  if (Math.abs(clientY - startY.current) > 10) {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
+  }
+};
+/*
   // 💡 関数本体をこれに差し替えます
   const handleIngredientTouchStart = (e: React.TouchEvent, ingredient: any, onEdit: (target: any) => void) => {
     isLongPressActive = false;
@@ -326,7 +363,7 @@ export default function Home() {
       longPressTimer = null;
     }
   };
-
+*/
   // 💡 長押し＆スクロール誤爆防止を両立した決定版センサー
   const handleIngredientLongPress = (
     ingredient: any,
@@ -1109,42 +1146,67 @@ useEffect(() => {
                             
                             return (
                               <button
-                                key={ing.id}// 🟢 スマホ（タッチ）用のイベント
-      onTouchStart={(e) => handleIngredientTouchStart(e, ing, (target) => {
-        setSelectedIngForModal(target);
-        setEditingText(target.name);
-        setEditingIngredientCategory(target.category);
-        setIngModalMode('edit');
-        setIsIngModalOpen(true);
-      })}
-      onTouchMove={handleIngredientTouchMove}
-      onTouchEnd={(e) => {
-        if (longPressTimer) clearTimeout(longPressTimer);
-        // 長押しが発火していなければ、純粋なタップとしてトグルを動かす
-        if (!isLongPressActive) {
-          handleToggleIngredient(ing.id); // 🌟 お使いの選択反転関数名に合わせてください
-        } else {
-          e.preventDefault();
-        }
-        isLongPressActive = false;
-      }}
-      // 🟢 PC（マウス）用のイベント（不要なら onClick={...} だけでもOKですが一応残す場合）
-      onClick={() => {
-        // スマホでonClickが重複発火するのを防ぐため、PC操作時のみ動くように
-        if (window.matchMedia('(pointer: fine)').matches) {
-          handleToggleIngredient(ing.id);
-        }
-      }}
-      className={`rounded-xl border font-bold transition select-none ${currentStyles.masterBtn} ${
-        isTarget 
-          ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
-          : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'
-      }`}
-      style={{
-        WebkitTouchCallout: 'none',
-        touchAction: 'pan-y' // 🌟 縦スクロールのみブラウザ標準の動きを許可して滑らかに
-      }}
-                              >
+                                key={ing.id}// 🟢 スマホ・タブレット（タッチ）用
+  onTouchStart={(e) => handleIngredientStart(e, ing, (target) => {
+    setSelectedIngForModal(target);
+    setEditingText(target.name);
+    setEditingIngredientCategory(target.category);
+    setIngModalMode('edit');
+    setIsIngModalOpen(true);
+  })}
+  onTouchMove={handleIngredientMove}
+  onTouchEnd={(e) => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    
+    if (!isLongPressActive.current) {
+      handleToggleIngredient(ing.id);
+    } else {
+      e.preventDefault();
+    }
+    isLongPressActive.current = false;
+  }}
+
+  // 🔵 PC（マウス）用
+  onMouseDown={(e) => {
+    if (e.button !== 0) return; // 左クリックのみ
+    handleIngredientStart(e, ing, (target) => {
+      setSelectedIngForModal(target);
+      setEditingText(target.name);
+      setEditingIngredientCategory(target.category);
+      setIngModalMode('edit');
+      setIsIngModalOpen(true);
+    });
+  }}
+  onMouseMove={handleIngredientMove} // マウスを押し下げたまま動かした時のキャンセル用
+  onMouseUp={() => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }}
+  onMouseLeave={() => {
+    // ボタンの外にカーソルが出たらタイマーを解除
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }}
+
+  // 🟢 PC（マウス）用のクリックイベント
+  onClick={() => {
+    // マウス操作、かつ長押しが発火していなかった場合のみトグルを動かす
+    if (window.matchMedia('(pointer: fine)').matches) {
+      if (!isLongPressActive.current) {
+        handleToggleIngredient(ing.id);
+      }
+      isLongPressActive.current = false; // フラグをリセット
+    }
+  }}
+
+  className={`rounded-xl border font-bold transition select-none ${currentStyles.masterBtn} ${
+    isTarget 
+      ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
+      : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'
+  }`}
+  style={{
+    WebkitTouchCallout: 'none',
+    touchAction: 'pan-y'
+  }}
+>
                                 {ing.name}
                               </button>
                             );
