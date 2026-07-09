@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
 const genAI = new GoogleGenerativeAI(Deno.env.get("GEMINI_API_KEY")!);
 
 Deno.serve(async (req) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
   // ここでフロントエンドから食材データなどを受け取る
   const { ingredients } = await req.json();
