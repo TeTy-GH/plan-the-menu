@@ -30,7 +30,10 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&display=swap" rel="stylesheet"></link>
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* 2. bodyの中を ModalProvider で囲む */}
+      <body className="min-h-full flex flex-col">
+        {children}
+      </body>
     </html>
   );
 }

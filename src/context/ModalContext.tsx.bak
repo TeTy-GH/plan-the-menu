@@ -1,0 +1,55 @@
+'use client';
+
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+export interface ModalContextType {
+  isMenuModalOpen: boolean;
+  openMenuModal: () => void;
+  closeMenuModal: () => void;
+
+  isIngredientModalOpen: boolean;
+  openIngredientModal: (mode?: 'add' | 'edit') => void;
+  closeIngredientModal: () => void;
+
+  ingredientMode: 'add' | 'edit';
+  editingText: string;
+  setEditingText: (text: string) => void;
+  editingCategory: string;
+  setEditingCategory: (category: string) => void;
+}
+
+export const ModalContext = createContext<ModalContextType>({} as ModalContextType);
+
+export const ModalProvider = ({ children }: { children: ReactNode }) => {
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
+  const [isIngredientModalOpen, setIsIngredientModalOpen] = useState(false);
+
+  const [ingredientMode, setIngredientMode] = useState<'add' | 'edit'>('add');
+
+  const [editingText, setEditingText] = useState('');
+  const [editingCategory, setEditingCategory] = useState('');
+
+  // 必要な関数（openするときにstateを初期化するようにすると便利）
+  const openIngredientModal = (mode: 'add' | 'edit' = 'add') => {
+    setIngredientMode(mode);
+    setIsIngredientModalOpen(true);
+  };
+
+  const value = {
+    isMenuModalOpen,
+    openMenuModal: () => setIsMenuModalOpen(true),
+    closeMenuModal: () => setIsMenuModalOpen(false),
+    isIngredientModalOpen,
+    openIngredientModal: () => setIsIngredientModalOpen(true),
+    closeIngredientModal: () => setIsIngredientModalOpen(false),
+    ingredientMode,
+    editingText,
+    setEditingText,
+    editingCategory,
+    setEditingCategory,
+  };
+
+  return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
+};
+
+export const useModal = () => useContext(ModalContext);
