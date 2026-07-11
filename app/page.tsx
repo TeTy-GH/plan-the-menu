@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import AiMenuSuggester from '@/components/AiMenuSuggester';
+import React from 'react';
 
 console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log("Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -215,8 +216,278 @@ function IngredientModal({
     </div>
   );
 }
+interface MenuModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  mode: 'add' | 'edit';
+  
+  // モーダル用のステート群
+  editingMenuTitle: string;
+  setEditingMenuTitle: (value: string) => void;
+  editingMenuType: 'main' | 'side';
+  setEditingMenuType: (type: 'main' | 'side') => void;
+  editingMenuMemo: string;
+  setEditingMenuMemo: (value: string) => void;
+  editingMenuIngredients: string[]; // 選択された食材IDの配列
+  handleToggleMasterIngredientSelection: (id: string) => void;
 
+  // 外部データ（食材一覧と定数）
+  ingredients: Ingredient[];
+  INGREDIENT_CATEGORIES: readonly string[];
 
+  // AIレシピ作成関連のステートと関数
+  isAiLoading: boolean;
+  extractedRecipe: any; // null または レシピデータ
+  handleAiCreateRecipe: () => void;
+  handleOpenConfirmModal: () => void;
+
+  // ローディング・スタイル
+  masterLoading: boolean;
+  currentStyles: any;
+  inputGlobalStyle?: string;
+  
+  // アクションハンドラー
+  onSave: () => void;
+  onDelete: () => void;
+}
+
+export const MenuModal: React.FC<MenuModalProps> = ({
+  isOpen,
+  onClose,
+  mode,
+  editingMenuTitle,
+  setEditingMenuTitle,
+  editingMenuType,
+  setEditingMenuType,
+  editingMenuMemo,
+  setEditingMenuMemo,
+  editingMenuIngredients,
+  handleToggleMasterIngredientSelection,
+  ingredients,
+  INGREDIENT_CATEGORIES,
+  isAiLoading,
+  extractedRecipe,
+  handleAiCreateRecipe,
+  handleOpenConfirmModal,
+  masterLoading,
+  currentStyles,
+  inputGlobalStyle,
+  onSave,
+  onDelete,
+}) => {
+  if (!isOpen) return null;
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 🌟 メモの値（editingMenuMemo）が変わるたびに高さを完璧に再計算する
+  useEffect(() => {
+    // 💡 setTimeoutで囲むことで、Reactのレンダリング（文字の反映）が
+    // 完全に終わった「直後の正確な高さ」を確実に取得して適用します。
+    const timer = setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'; // 一旦リセットして
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight * 1.04}px`; // 1.04は高さの認識ズレによるサイズ不足の解消
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [editingMenuMemo]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      {/* 🌟 w-full から w-11/12 md:w-4/5 に変更し、max-w-4xl に広げました */}
+      <div className="w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">        
+        {/* ヘッダー */}
+        <div className="flex justify-between items-center mb-4 shrink-0">
+          <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
+            {mode === 'add' ? '🍽️ メニューの追加' : '✏️ メニューの編集'}
+          </h2>
+          <button 
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1"
+            disabled={masterLoading}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* スクロール可能なフォーム本体 */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1 -mr-1 overscroll-contain">
+          
+          {/* メニュー名入力 */}
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={editingMenuTitle}
+              onChange={(e) => setEditingMenuTitle(e.target.value)}
+              placeholder="例: ハンバーグ"
+              className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
+              disabled={masterLoading}
+            />
+          </div>
+
+          {/* メニューのカテゴリ選択 */}
+          <div>
+            <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+              メニューのカテゴリ：
+            </span>
+            <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white w-fit">
+              <button
+                type="button"
+                onClick={() => setEditingMenuType('main')}
+                disabled={masterLoading}
+                className={`px-3 py-1 rounded transition ${currentStyles.score} ${
+                  editingMenuType === 'main' 
+                    ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow font-bold' 
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                🍗 主菜
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingMenuType('side')}
+                disabled={masterLoading}
+                className={`px-3 py-1 rounded transition ${currentStyles.score} ${
+                  editingMenuType === 'side' 
+                    ? 'text-black dark:text-white bg-white dark:bg-zinc-950 shadow font-bold' 
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                🥗 副菜
+              </button>
+            </div>
+          </div>
+
+          {/* 使用する食材の選択 */}
+          <div>
+            <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
+              使用する食材を選択：
+            </span>
+            <div className="max-h-48 overflow-y-auto overscroll-contain border border-slate-100 dark:border-stone-100/10 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-2">
+              {INGREDIENT_CATEGORIES.map(category => {
+                const filtered = ingredients.filter(ing => ing.category === category);
+                if (filtered.length === 0) return null;
+                return (
+                  <div key={category} className="space-y-1">
+                    <span className={`block font-black text-indigo-600 dark:text-yellow-600 ${currentStyles.score}`}>
+                      ー {category} ー
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {filtered.map(ing => {
+                        const isTarget = editingMenuIngredients.includes(ing.id);
+                        return (
+                          <button
+                            type="button" 
+                            key={ing.id} 
+                            onClick={() => handleToggleMasterIngredientSelection(ing.id)}
+                            disabled={masterLoading}
+                            className={`rounded border font-bold transition ${currentStyles.masterBtn} ${
+                              isTarget 
+                                ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
+                                : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                            }`}
+                          >
+                            {ing.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* レシピ・メモエリア（AI機能付き） */}
+          <div className="relative pt-1">
+            <div className="flex justify-between items-center mb-2">
+              <span className={`block font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
+                レシピ・メモ：
+              </span>
+            </div>
+
+            {/* AIレシピボタン群 */}
+            {isAiLoading ? (
+              <button
+                type="button"
+                disabled
+                className={`${currentStyles.masterBtn} absolute top-0 right-0 leading-none tracking-tighter rounded-lg font-bold border dark:border-zinc-600 bg-slate-100 text-slate-400 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed flex items-center gap-1 z-10`}
+              >
+                <span className="animate-spin">🌀</span> レシピ作成中...
+              </button>
+            ) : extractedRecipe !== null ? (
+              <button
+                type="button"
+                onClick={handleOpenConfirmModal}
+                className={`${currentStyles.masterBtn} absolute top-0 right-0 leading-none tracking-tighter rounded-lg font-black border dark:border-zinc-600 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 animate-pulse flex items-center gap-1 z-10 transition-all duration-300`}
+              >
+                <span>📌</span> メモへ貼付け
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAiCreateRecipe}
+                disabled={masterLoading}
+                className={`${currentStyles.masterBtn} absolute top-0 right-0 rounded-lg leading-none tracking-tighter font-bold border dark:border-zinc-600 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-400 dark:hover:bg-indigo-950/80 flex items-center gap-1 z-10 transition-colors`}
+              >
+                <span>✨</span> AIレシピ作成
+              </button>
+            )}
+
+            <textarea
+              id="modal-menu-memo-textarea"
+              ref={textareaRef}
+              value={editingMenuMemo}
+              disabled={masterLoading}
+              onChange={(e) => {
+                setEditingMenuMemo(e.target.value);
+                //e.target.style.height = 'auto';
+                //e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              placeholder="材料や作り方、コツなどを自由にメモ...（エンターキーの改行がそのまま反映されます）"
+              rows={3}
+              className={`w-full p-3 border rounded-xl overflow-hidden focus:outline-blue-500 transition resize-none text-base leading-snug ${inputGlobalStyle} ${currentStyles.input}`}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800 shrink-0">
+          {/* 編集モードの時だけ削除ボタンを表示 */}
+          {mode === 'edit' ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={masterLoading}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400 rounded-xl font-bold px-4 py-2 transition"
+            >
+              削除
+            </button>
+          ) : <div />}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={masterLoading}
+              className="bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-slate-300 rounded-xl font-bold px-4 py-2 hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black px-5 py-2 shadow-sm transition"
+            >
+              保存
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 
 
@@ -265,7 +536,7 @@ export default function Home() {
   const [editingText, setEditingText] = useState('');
   const [editingIngredientCategory, setEditingIngredientCategory] = useState<IngredientCategory>('その他');
   const [editingMenuIngredients, setEditingMenuIngredients] = useState<string[]>([]);
-  const [editingMenuType, setEditingMenuType] = useState<MenuType>('main');
+  const [editingMenuType, setEditingMenuType] = useState<'main' | 'side'>('main');
   const [editingMemo, setEditingMemo] = useState('');
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -298,10 +569,11 @@ export default function Home() {
   const startY = useRef<number>(0);
   const isScrolling = useRef<boolean>(false);
 
-//  let longPressTimer: NodeJS.Timeout | null = null;
-//  let isLongPressActive = false;
-  let touchStartY = 0;
-
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
+  const [menuModalMode, setMenuModalMode] = useState<'add' | 'edit'>('add');
+  const [selectedMenuForModal, setSelectedMenuForModal] = useState<any>(null);
+  const [editingMenuTitle, setEditingMenuTitle] = useState('');
+  
   // 2. 「新規追加」ボタンが押された時の処理
   const handleOpenAddIngredient = () => {
     setIngModalMode('add');        // 👈 モードを明示的に 'add' に！
@@ -310,68 +582,79 @@ export default function Home() {
     setEditingIngredientCategory(INGREDIENT_CATEGORIES[0]);
     setIsIngModalOpen(true);
   };
-
-// 🟢 開始処理
-const handleIngredientStart = (
-  e: React.TouchEvent | React.MouseEvent,
-  ingredient: any,
-  onEdit: (target: any) => void
-) => {
-  isLongPressActive.current = false;
-  isScrolling.current = false; // 押し始めた時は一回リセット
-
-  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-  startY.current = clientY;
-
-  if (longPressTimer.current) clearTimeout(longPressTimer.current);
-
-  longPressTimer.current = setTimeout(() => {
-    // スクロール中なら長押しモーダルは開かない
-    if (isScrolling.current) return;
-    isLongPressActive.current = true;
-    onEdit(ingredient);
-  }, 600);
-};
-
-// 🟢 動いた時の処理
-const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
-  if (!longPressTimer.current) return;
-
-  const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-  // 10px以上動いたら「これはスクロール操作だ」と判定
-  if (Math.abs(clientY - startY.current) > 10) {
-    isScrolling.current = true; // 🌟 スクロール中フラグを立てる
     
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+  // メニュー新規追加用（もしどこかに「＋」ボタンを作る場合用）
+  const handleOpenAddMenu = () => {
+    setMenuModalMode('add');
+    setSelectedMenuForModal(null);
+    setEditingMenuTitle('');
+    setEditingMenuType('main');
+    setEditingMenuIngredients([]);
+    setEditingMemo('');
+    setIsMenuModalOpen(true);
+  };
+
+  // メニュー編集用（長押しなどで呼び出す用）
+  const handleOpenEditMenu = async (menu: any) => {
+    setMenuModalMode('edit');
+    setSelectedMenuForModal(menu);
+    setEditingMenuTitle(menu.title);
+    setEditingMemo(menu.memo || '');
+
+    setEditingMenuType(menu.menu_type || 'main');
+
+    const { data, error } = await supabase
+      .from('menu_ingredients')
+      .select('ingredient_id')
+      .eq('menu_id', menu.id);
+    
+    if (!error && data) {
+      setEditingMenuIngredients(data.map(item => item.ingredient_id));
+    } else {
+      setEditingMenuIngredients([]);
     }
-  }
-};
+    setIsMenuModalOpen(true);
+  };
 
-/*
-  // 💡 関数本体をこれに差し替えます
-  const handleIngredientTouchStart = (e: React.TouchEvent, ingredient: any, onEdit: (target: any) => void) => {
-    isLongPressActive = false;
-    touchStartY = e.touches[0].clientY; // タッチした縦位置を記録
+  // 🟢 開始処理
+  const handleIngredientStart = (
+    e: React.TouchEvent | React.MouseEvent,
+    ingredient: any,
+    onEdit: (target: any) => void
+  ) => {
+    isLongPressActive.current = false;
+    isScrolling.current = false; // 押し始めた時は一回リセット
 
-    longPressTimer = setTimeout(() => {
-      isLongPressActive = true;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    startY.current = clientY;
+
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+
+    longPressTimer.current = setTimeout(() => {
+      // スクロール中なら長押しモーダルは開かない
+      if (isScrolling.current) return;
+      isLongPressActive.current = true;
       onEdit(ingredient);
-    }, 600); // 0.6秒長押しで小窓
+    }, 600);
   };
 
-  const handleIngredientTouchMove = (e: React.TouchEvent) => {
-    if (!longPressTimer) return;
-    // 縦に10px以上スクロールしたら、長押しタイマーを完全にリセット（誤爆防止）
-    const currentY = e.touches[0].clientY;
-    if (Math.abs(currentY - touchStartY) > 10) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
+  // 🟢 動いた時の処理
+  const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!longPressTimer.current) return;
+
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    // 10px以上動いたら「これはスクロール操作だ」と判定
+    if (Math.abs(clientY - startY.current) > 10) {
+      isScrolling.current = true; // 🌟 スクロール中フラグを立てる
+      
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
     }
   };
-*/
+
   // 💡 長押し＆スクロール誤爆防止を両立した決定版センサー
   const handleIngredientLongPress = (
     ingredient: any,
@@ -453,7 +736,7 @@ const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
   const openMemoModal = (menu: Menu) => {
     setViewingMemoMenu(menu);
   };
-
+/*
   useEffect(() => {
     // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
     setTimeout(() => {
@@ -464,20 +747,21 @@ const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
       }
     }, 50);
   }, [ newMenuMemo, newMemoTab]);
-
-useEffect(() => {
-  if (editingId) {
-    // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
-    setTimeout(() => {
-      const textarea = document.getElementById('editing-memo-textarea') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = `${textarea.scrollHeight}px`;
-      }
-    }, 50);
-  }
-}, [editingId, editingMemo, editingMemoTab]);
-
+*/
+/*
+  useEffect(() => {
+    if (editingId) {
+      // 1コメ半（少しだけ描画を待ってから計算するJavaScriptの定番の処理）
+      setTimeout(() => {
+        const textarea = document.getElementById('editing-memo-textarea') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.style.height = 'auto';
+          textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+      }, 50);
+    }
+  }, [editingId, editingMemo, editingMemoTab]);
+*/
   useEffect(() => {
     const savedSize = localStorage.getItem('dinner_app_font_size') as FontSizeMode;
     if (savedSize && ['small', 'medium', 'large'].includes(savedSize)) {
@@ -709,8 +993,18 @@ useEffect(() => {
   };
 
   const handleRegisterIngredient = async () => {
-    const trimmedName = editingText.trim(); // 共通で使えるように変数化
-    if (!trimmedName) return;
+
+    const trimmedName = editingText?.trim();
+
+    if (!trimmedName) {
+      setModal({
+        show: true,
+        type: 'info', 
+        title: '登録エラー',
+        message: '食材名を入力してください。',
+      });
+      return; 
+    }
 
     setMasterLoading(true);
 
@@ -745,14 +1039,22 @@ useEffect(() => {
     setMasterLoading(false);
   };
 
-  const handleRegisterMenu = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedTitle = newMenuTitle.trim(); // 共通で使えるように変数化
-    if (!trimmedTitle) return;
+  const handleRegisterMenu = async () => {
+    const trimmedTitle = editingMenuTitle?.trim();
+
+    if (!trimmedTitle) {
+      setModal({
+        show: true,
+        type: 'info', 
+        title: '登録エラー',
+        message: 'メニュー名を入力してください。',
+      });
+      return; 
+    }
 
     setMasterLoading(true);
 
-    // 🟢 2. メニュー名の重複チェック
+    // 🟢 メニュー名の重複チェック
     const { data: existingMenu } = await supabase
       .from('menus')
       .select('id')
@@ -767,48 +1069,58 @@ useEffect(() => {
         title: '登録エラー',
         message: `メニュー「${trimmedTitle}」はすでに登録されています。`,
       });
-      return; // ここで処理を終了し、インサートを行わない
+      return;
     }
 
-    // 重複がなければ登録
+    // 重複がなければインサート
     const { data: menuData, error: menuError } = await supabase
       .from('menus')
       .insert([
         { 
           title: trimmedTitle, 
           cook_count: 0, 
-          menu_type: newMenuType, 
-          memo: newMenuMemo 
+          menu_type: editingMenuType, // 🌟 モーダルの選択状態をそのまま使用
+          memo: editingMemo
         }
       ])
       .select('id')
       .single();
-
+      
     if (menuError || !menuData) {
+      setIsMenuModalOpen(false);
       setMasterLoading(false);
       return;
     }
 
-    if (newMenuIngredients.length > 0) {
-      const relationData = newMenuIngredients.map(ingId => ({
+    if (editingMenuIngredients.length > 0) {
+      const relationData = editingMenuIngredients.map(ingId => ({
         menu_id: menuData.id,
         ingredient_id: ingId
       }));
       await supabase.from('menu_ingredients').insert(relationData);
     }
 
-    setNewMenuTitle('');
-    setNewMenuMemo('');
-    setNewMemoTab('write');
-    setNewMenuIngredients([]);
-    setNewMenuType('main');
+    setEditingMenuTitle('');
+    setEditingMenuType('main');
+    setIsMenuModalOpen(false);
+
     setRefreshTrigger(prev => prev + 1);
     setMasterLoading(false);
   };
 
   const handleUpdateIngredient = async (id: string) => {
-    const trimmedName = editingText.trim();
-    if (!trimmedName) return;
+    
+    const trimmedName = editingText?.trim();
+
+    if (!trimmedName) {
+      setModal({
+        show: true,
+        type: 'info', 
+        title: '登録エラー',
+        message: '食材名を入力してください。',
+      });
+      return; 
+    }
 
     setMasterLoading(true);
 
@@ -870,13 +1182,50 @@ useEffect(() => {
   };
 
   const handleUpdateMenuAndIngredients = async (menuId: string) => {
-    if (!editingText.trim()) return;
+
+    const trimmedTitle = editingMenuTitle?.trim();
+
+    if (!trimmedTitle) {
+      setModal({
+        show: true,
+        type: 'info', 
+        title: '登録エラー',
+        message: 'メニュー名を入力してください。',
+      });
+      return; 
+    }
+
     setMasterLoading(true);
 
+    // 🟢 1. 編集後のメニュー名が、すでに「他のメニュー」で使われていないかチェック
+    const { data: existingMenu, error: checkError } = await supabase
+      .from('menus')
+      .select('id')
+      .eq('title', trimmedTitle)
+      .neq('id', menuId) // ✨ 食材の時と同じ！「自分以外のメニュー」という条件を指定
+      .maybeSingle();
+
+    if (checkError) {
+      console.error(checkError);
+    }
+
+    // 重複するメニューが見つかった場合はアラートを出して中断
+    if (existingMenu) {
+      setMasterLoading(false);
+      setModal({
+        show: true,
+        type: 'info',
+        title: '更新エラー',
+        message: `メニュー「${trimmedTitle}」はすでに登録されています。`,
+      });
+      return; // ⚠️ ここで処理を中断することで、モーダルを閉じずに残します
+    }
+
+    // 🟢 2. 重複がなければ通常の更新処理へ
     const { error: menuError } = await supabase
       .from('menus')
       .update({ 
-        title: editingText.trim(),
+        title: trimmedTitle, // 🌟 トリム済みの名前を使用
         menu_type: editingMenuType,
         memo: editingMemo 
       })
@@ -903,7 +1252,7 @@ useEffect(() => {
   };
 
   const handleToggleMasterIngredientSelection = (id: string) => {
-    setNewMenuIngredients(prev =>
+    setEditingMenuIngredients(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -947,7 +1296,7 @@ useEffect(() => {
       message: 'AIレシピをメモに追記しますか？（以下、レシピ内容）\n\n\n' + extractedRecipe,
       onConfirm: () => {
         // 1. メモの最後尾に結合
-        setNewMenuMemo((prevMemo) => {
+        setEditingMemo((prevMemo) => {
           if (prevMemo && prevMemo.trim()) return `${prevMemo}\n\n${extractedRecipe}`;
           return extractedRecipe;
         });
@@ -963,7 +1312,7 @@ useEffect(() => {
   // 🧠 自前で作った Vercel API 経由でレシピを生成する非同期関数（デバッグ強化版）
   const handleAiCreateRecipe = async () => {
     if (isAiLoading) return;
-    if (!newMenuTitle || newMenuTitle.trim() === '') {
+    if (!editingMenuTitle || editingMenuTitle.trim() === '') {
       setModal({
         show: true,
         type: 'info', 
@@ -971,7 +1320,7 @@ useEffect(() => {
         message: 'AIレシピを作成するには、メニュー名を入力してください。',
       });
       return; 
-    }    
+    }
     setIsAiLoading(true);
     try {
       // 🚀 【非同期処理】たった今作成した「身内（Vercel）のAPI」を叩く！
@@ -979,7 +1328,7 @@ useEffect(() => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          menu_title: newMenuTitle, // 料理名
+          menu_title: editingMenuTitle, // 料理名
           aiCount: aiCount          // おかわりカウンタ（0, 1, 2...）
         })
       });
@@ -1115,24 +1464,24 @@ useEffect(() => {
         {/* ----------------- 画面1: メインアプリ ----------------- */}
         {viewMode === 'main' && (
           <>
-
-                <AiMenuSuggester 
-                  ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
-                  selectedIngredients={selectedIngredients}
-                  aiMenuTitle={aiMenuTitle} 
-                  onSuggestionReceived={(newMenu) => {
-                    console.log("親で受信！:", newMenu.title);
-                    setAiMenuTitle(newMenu.title);
-                  }}
-                  currentStyles={currentStyles}
-                  onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
-                />
-                
+           <div className="mb-4">
+              <AiMenuSuggester 
+                ref={aiSuggesterRef} // 🟢 子の関数を呼ぶためのref
+                selectedIngredients={selectedIngredients}
+                aiMenuTitle={aiMenuTitle} 
+                onSuggestionReceived={(newMenu) => {
+                  console.log("親で受信！:", newMenu.title);
+                  setAiMenuTitle(newMenu.title);
+                }}
+                currentStyles={currentStyles}
+                onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
+              />
+            </div>
             {/* 使いたい食材 */}
-            <div className="bg-white/70 dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
+            <div className="bg-white/70 dark:bg-zinc-950/70 p-6 mb-4 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
             
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-5">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
                     🥦 使いたい食材
                   </h2>
@@ -1153,7 +1502,7 @@ useEffect(() => {
               </div>
               
               {ingredients.length > 0 ? (
-                <div className="pb-10 max-h-72 overflow-y-auto pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
+                <div className="pb-10 max-h-72 overflow-y-auto overscroll-contain pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
                   {INGREDIENT_CATEGORIES.map(category => {
                     const filteredIngredients = ingredients.filter(ing => ing.category === category);
                     if (filteredIngredients.length === 0) return null;
@@ -1165,22 +1514,8 @@ useEffect(() => {
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {filteredIngredients.map(ing => {
-                            const isSelected = selectedIngredients.includes(ing.id);
                             const isTarget = selectedIngredients.includes(ing.id);
 
-                            // 🌟 上で定義した共通関数をここでスマートに呼び出すだけ！
-                            const handlers = handleIngredientLongPress(
-                              ing, 
-                              () => handleToggleIngredient(ing.id), 
-                              (targetIng: Ingredient) => {
-                                setIngModalMode('edit');       // ① モードを編集に
-                                setSelectedIngForModal(targetIng); // ② 長押しされた食材データをセット
-                                setEditingText(targetIng.name);    // ③ 入力欄に現在の名前を反映
-                                setEditingIngredientCategory(targetIng.category); // ④ カテゴリも反映
-                                setIsIngModalOpen(true);           // ⑤ 小窓をオープン！
-                              }
-                            );
-                            
                             return (
                               <button
                                 key={ing.id}// 🟢 スマホ・タブレット（タッチ）用
@@ -1268,11 +1603,19 @@ useEffect(() => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* おすすめリスト */}
               <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
-                <div className="flex justify-between items-center mb-4 gap-2">
+                <div className="flex items-center gap-5 mb-4">
                   <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
                   </h2>
                   
+                  <button
+                    type="button"
+                    onClick={handleOpenAddMenu} // 👈 先ほど作った新規用の関数を呼ぶ
+                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm border dark:border-zinc-700"
+                    title="メニューを新規登録"
+                  >
+                    <span className="text-xl font-black leading-none">+</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-5">
@@ -1299,58 +1642,94 @@ useEffect(() => {
                   </div>
                 </div>
                 
-                <div className="pb-10 overflow-y-auto max-h-130 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner space-y-3">
+                <div className="pb-10 overflow-y-auto overscroll-contain max-h-130 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner space-y-3">
                   {loading ? (
                     <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
                   ) : sortedMenus.length > 0 ? (
-                    sortedMenus.map(menu => {
-                      const isAlreadyKept = keepList.some(item => item.id === menu.id);
 
-                      return (
-                        <div key={menu.id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition">
-                          <div className="flex flex-col gap-1 flex-1 pr-2 pl-2">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
-                              {menu.ingredient_count === 0 && (
-                                <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
-                                  ⚠️食材未登録
-                                </span>
-                              )}
-                            </div>
+sortedMenus.map((menu: Menu) => {
+  const isAlreadyKept = keepList.some(item => item.id === menu.id);
 
-                            {sortMode === 'score' ? (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
-                                  おすすめスコア: {Math.round(menu.score || 0)}点
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
-                                  最終調理日: {menu.last_cooked_at ? new Date(menu.last_cooked_at).toLocaleDateString() : '未調理'}
-                                </span>
-                                {menu.cook_count && menu.cook_count > 0 && !menu.is_cancelled ? (
-                                  <button onClick={() => triggerCancelCookModal(menu.id, menu.title)} className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}>
-                                    ↩ 調理取消
-                                  </button>
-                                ) : null}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleToggleKeep(menu)} 
-                            className={`rounded-lg font-bold transition-all shadow-sm shrink-0 border ${currentStyles.masterBtn} ${
-                              isAlreadyKept
-                                ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-white dark:text-black dark:border-white shadow-md scale-95' 
-                                : 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-white dark:hover:text-black'
-                            }`}
-                          >
-                            {isAlreadyKept ? '📌 追加済み' : '📌 候補'}
-                          </button>
-                        </div>
-                      );
-                    })
+  return (
+    <div 
+      key={menu.id} 
+      
+      // 🌟 スマホ長押し & PC操作の仕掛けをメニューカード全体に付与
+      onTouchStart={(e) => handleIngredientStart(e, menu, (target) => handleOpenEditMenu(target))} // 前述の共通Start関数を流用可能
+      onTouchMove={handleIngredientMove}
+      onTouchEnd={(e) => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+        if (isScrolling.current) {
+          isScrolling.current = false;
+          return;
+        }
+        isLongPressActive.current = false;
+      }}
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        handleIngredientStart(e, menu, (target) => handleOpenEditMenu(target));
+      }}
+      onMouseMove={handleIngredientMove}
+      onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+      onMouseLeave={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+      
+      className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition select-none"
+      style={{ WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+    >
+      <div className="flex flex-col gap-1 flex-1 pr-2 pl-2 cursor-pointer">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
+          {menu.ingredient_count === 0 && (
+            <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
+              ⚠️食材未登録
+            </span>
+          )}
+        </div>
+
+        {/* スコア・履歴表示部分 */}
+        {sortMode === 'score' ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
+              おすすめスコア: {Math.round(menu.score || 0)}点
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
+              最終調理日: {menu.last_cooked_at ? new Date(menu.last_cooked_at).toLocaleDateString() : '未調理'}
+            </span>
+            {menu.cook_count && menu.cook_count > 0 && !menu.is_cancelled ? (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation(); // 親の長押し/クリック判定と競合しないようにガード
+                  triggerCancelCookModal(menu.id, menu.title);
+                }} 
+                className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}
+              >
+                ↩ 調理取消
+              </button>
+            ) : null}
+          </div>
+        )}
+      </div>
+      
+      <button 
+        onClick={(e) => {
+          e.stopPropagation(); // ガード
+          handleToggleKeep(menu);
+        }} 
+        className={`rounded-lg font-bold transition-all shadow-sm shrink-0 border ${currentStyles.masterBtn} ${
+          isAlreadyKept
+            ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-white dark:text-black dark:border-white shadow-md scale-95' 
+            : 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-white dark:hover:text-black'
+        }`}
+      >
+        {isAlreadyKept ? '📌 追加済み' : '📌 候補'}
+      </button>
+    </div>
+  );
+})
+
                   ) : (
                     <p className={`text-slate-400 dark:text-white text-center py-8 ${currentStyles.masterText}`}>メニューが見つかりませんでした。</p>
                   )}
@@ -1509,8 +1888,8 @@ useEffect(() => {
                 </form>
               </div>
                 */}
-
-              {/* メニューマスタ登録 */}
+{/*}
+              // メニューマスタ登録 
               <div className="bg-white dark:bg-zinc-950/70 p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-2">
                 <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white mb-3 flex items-center gap-2`}>
                   🍽️ メニューの追加
@@ -1525,7 +1904,7 @@ useEffect(() => {
                     disabled={masterLoading}
                   />
 
-                  {/* 🟢 追加：新規メニューのタイプ選択 */}
+                  // 🟢 追加：新規メニューのタイプ選択
                   <div>
                     <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
                       メニューのカテゴリ：
@@ -1587,7 +1966,7 @@ useEffect(() => {
                       </span>
                     </div>
 
-                    {/* 🔮 AIレシピ作成・貼り付けボタン（ステートマシン） */}
+                    // 🔮 AIレシピ作成・貼り付けボタン（ステートマシン） 
                     {isAiLoading ? (
                       // ─── 姿②：通信中 ───
                       <button
@@ -1647,6 +2026,7 @@ useEffect(() => {
                   </button>
                 </form>
               </div>
+            */}
             </div>
 
 
@@ -1754,16 +2134,16 @@ useEffect(() => {
                 </div>
               </div>
               */}
-
-              {/* メニューの一覧・編集・削除 */}
+{/*}
+              // メニューの一覧・編集・削除 
               <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 md:col-span-3">
-                {/* タイトルと切り替えボタンを横並びにするコンテナ */}
+                // タイトルと切り替えボタンを横並びにするコンテナ
                 <div className="flex justify-between items-center mb-3 border-b dark:border-zinc-800 pb-2 flex-wrap gap-2">
                   <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                     📋 メニューの編集・削除
                   </h2>
                   
-                  {/* 🟢 追加：編集・削除リスト用のメニュータイプ（主菜・副菜）切り替えボタン */}
+                  // 🟢 追加：編集・削除リスト用のメニュータイプ（主菜・副菜）切り替えボタン 
                   <div className="flex bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 text-stone-900 dark:text-white">
                     <button 
                       onClick={() => setSelectedManageMenuType('main')} 
@@ -1780,11 +2160,11 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* 🟢 編集中のID（editingId）がある時は、高さ上限をなし(max-h-none)にしてスクロールも消す */}
+                // 🟢 編集中のID（editingId）がある時は、高さ上限をなし(max-h-none)にしてスクロールも消す
                   <div className={`pr-2 space-y-2 transition-all duration-300 ${
                     editingId ? 'max-h-none' : 'max-h-100 overflow-y-auto'
                   }`}>
-                  {/* 🟢 recommendedMenus の直後に .filter を追加して選択中のタイプだけに絞り込む */}
+                  // 🟢 recommendedMenus の直後に .filter を追加して選択中のタイプだけに絞り込む 
                   {recommendedMenus
                     .filter(menu => (menu.menu_type || 'main') === selectedManageMenuType)
                     // 🟢 追加：編集中の時は、そのメニュー以外をリストから除外する（画面から消す）
@@ -1795,7 +2175,7 @@ useEffect(() => {
                       return (
                         <div key={menu.id} className="relative p-2 bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800">
 
-                          {/* 編集モードの表示レイアウト */}
+                          // 編集モードの表示レイアウト 
                           <div className={`
                             transition-all duration-500 ease-in-out overflow-hidden
                             ${isEditing 
@@ -1811,7 +2191,7 @@ useEffect(() => {
                                 className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
                               />
                               
-                              {/* 編集中のメニュータイプ切り替えトグル */}
+                              // 編集中のメニュータイプ切り替えトグル 
                               <div className="flex items-center gap-2">
                                 <span className={`font-bold text-slate-400 dark:text-white ${currentStyles.score}`}>
                                   カテゴリ：
@@ -1900,10 +2280,9 @@ useEffect(() => {
                               <button onClick={() => setEditingId(null)} className={`bg-slate-200 text-slate-600 rounded font-bold ${currentStyles.masterBtn}`}>キャンセル</button>
                               <button onClick={() => handleUpdateMenuAndIngredients(menu.id)} className={`bg-blue-600 hover:bg-blue-700 text-white rounded font-black shadow-sm ${currentStyles.masterBtn}`}>保存</button>
                             </div>
-                            {/* <BoundaryPin isEditing={isEditing} /> */}
                           </div>
 
-                          {/* 通常モード（一覧表示）のレイアウト */}
+                          // 通常モード（一覧表示）のレイアウト 
                           <div className={`
                             transition-all duration-500 ease-in-out overflow-hidden
                             ${isEditing 
@@ -1931,7 +2310,7 @@ useEffect(() => {
                       );
                     })}
                 </div>
-              </div>
+              </div>*/}
             </div>
           </div>
         )}
@@ -1995,6 +2374,45 @@ useEffect(() => {
           }
         }}
       />
+<MenuModal
+  isOpen={isMenuModalOpen}
+  onClose={() => setIsMenuModalOpen(false)}
+  mode={menuModalMode}
+  editingMenuTitle={editingMenuTitle}
+  setEditingMenuTitle={setEditingMenuTitle}
+  editingMenuType={editingMenuType}
+  setEditingMenuType={setEditingMenuType} 
+  
+  // 🟢 ここから下が新しく追加が必要なプロパティです！
+  editingMenuMemo={editingMemo}
+  setEditingMenuMemo={setEditingMemo}
+  editingMenuIngredients={editingMenuIngredients} 
+  handleToggleMasterIngredientSelection={handleToggleMasterIngredientSelection}
+  ingredients={ingredients}
+  INGREDIENT_CATEGORIES={INGREDIENT_CATEGORIES}
+  isAiLoading={isAiLoading}
+  extractedRecipe={extractedRecipe}
+  handleAiCreateRecipe={handleAiCreateRecipe}
+  handleOpenConfirmModal={handleOpenConfirmModal}
+  masterLoading={masterLoading}
+  // 🟢 ここまでを追加
+
+  currentStyles={currentStyles}
+  inputGlobalStyle={inputGlobalStyle}
+  onSave={() => {
+    if (menuModalMode === 'edit') {
+      // 🌟 安全のために selectedMenuForModal の後ろに ? をつけておくとより安心です
+      handleUpdateMenuAndIngredients(selectedMenuForModal?.id); 
+    } else {
+      handleRegisterMenu();
+    }
+  }}
+  onDelete={() => {
+    if (selectedMenuForModal) {
+      triggerDeleteMenuModal(selectedMenuForModal.id, selectedMenuForModal.title);
+    }
+  }}
+/>
 
       {/* 統合型アプリ内確認モーダル */}
       {modal.show && (
