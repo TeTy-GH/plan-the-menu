@@ -39,19 +39,19 @@ export const SettingDrawer = ({
       />
         
       {/* ドロワー本体 */}
-      <div className={`fixed top-0 right-0 h-full w-80 bg-white dark:bg-zinc-900 z-50 shadow-2xl p-6 
-                      transition-transform duration-300 ease-in-out
+      <div className={`fixed top-0 right-0 h-full w-[25%] bg-white dark:bg-zinc-900 z-50 shadow-2xl 
+                      p-6 transition-transform duration-300 ease-in-out
                       ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className='flex justify-end'>
-          <button onClick={onClose} className={`mb-6 text-slate-500 dark:text-white ${currentStyles.masterText}`}>
+          <button onClick={onClose} className={`mb-4 text-slate-500 dark:text-white ${currentStyles.masterText}`}>
             ✕ 閉じる
           </button>
         </div>
-        <h2 className={`font-bold text-xl mb-4 ${currentStyles.masterText}`}>
+        <h2 className={`font-bold mb-4 ${currentStyles.masterText}`}>
           🔎 文字サイズ
         </h2>
 
-        <div className="flex flex-norap gap-3 pl-6">
+        <div className="flex flex-norap gap-3 pl-4">
           {(['small', 'medium', 'large'] as const).map((size) => {
             const label = size === 'small' ? '小' : size === 'medium' ? '中' : '大';
             
