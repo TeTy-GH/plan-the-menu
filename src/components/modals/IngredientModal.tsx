@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { INGREDIENT_CATEGORIES } from '@/constants';
 
 interface IngredientModalProps {
@@ -9,45 +10,81 @@ interface IngredientModalProps {
   editingText: string;
   setEditingText: (val: string) => void;
   editingCategory: string;
-  setEditingCategory: (val: any) => void;
-  currentStyles: any; // page.tsxのFONT_SIZESの型に合わせて調整可能
+  setEditingCategory: (val: any) => void; // any -> string
+  currentStyles: any;
   inputGlobalStyle: string;
   onSave: () => void;
-  onDelete: () => void; 
+  onDelete?: () => void; // 必須ではなく任意に変更
 }
 
 export const IngredientModal = ({
   isOpen,
-  onClose, 
+  onClose,
   mode,
   editingText,
   setEditingText,
   editingCategory,
   setEditingCategory,
-  currentStyles, 
-  inputGlobalStyle, 
-  onSave, 
-  onDelete 
+  currentStyles,
+  inputGlobalStyle,
+  onSave,
+  onDelete
 }: IngredientModalProps) => {
+  
+  const onCloseRef = useRef(onClose);
+useEffect(() => {
+  onCloseRef.current = onClose;
+}, [onClose]);
 
+  // フォーカス制御用のRef
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    if (!isOpen) return; // 閉じている時は何も動かさない
+
+    // === 💡 ここからは「開いた瞬間」に1回だけ実行される ===
+    document.body.style.overflow = 'hidden';
+    
+    const timer = setTimeout(() => {
+      inputRef.current?.focus(); 
+    }, 100);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 常に最新の onClose をRef経由で安全に呼び出す
+      if (e.key === 'Escape') onCloseRef.current(); 
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    // === 💡 クリーンアップ（モーダルが閉じた瞬間に1回だけ実行される） ===
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.removeProperty('overflow');
+    };
+  }, [isOpen]);
+  
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-zinc-900 w-full max-w-md p-6 rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-200">
+      {/* 背景クリックで閉じる */}
+      <div className="absolute inset-0" onClick={onClose} />
+
+      {/* モーダル本体 */}
+      <div className="relative w-full max-w-md p-6 rounded-2xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-200">
         
-        {/* ヘッダー部分 */}
         <h3 className="text-lg font-black text-slate-800 dark:text-white mb-4 flex items-center gap-2">
           {mode === 'edit' ? '🥦 食材の編集' : '✨ 食材の登録'}
         </h3>
 
-        {/* フォーム入力エリア */}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
               食材名
             </label>
             <input
+              ref={inputRef} // ref を追加
               type="text"
               value={editingText}
               onChange={(e) => setEditingText(e.target.value)}
@@ -72,9 +109,7 @@ export const IngredientModal = ({
           </div>
         </div>
 
-        {/* ボタンエリア */}
         <div className="flex items-center justify-between mt-6 gap-2">
-          {/* 編集モードの時だけ左側に削除ボタンを表示 */}
           {mode === 'edit' && onDelete ? (
             <button
               type="button"
@@ -83,9 +118,7 @@ export const IngredientModal = ({
             >
               削除
             </button>
-          ) : (
-            <div /> // 新規時はスペースを保つためのダミー
-          )}
+          ) : <div />}
 
           <div className="flex gap-2">
             <button
@@ -104,7 +137,6 @@ export const IngredientModal = ({
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );
