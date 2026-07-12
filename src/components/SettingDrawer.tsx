@@ -40,8 +40,8 @@ export const SettingDrawer = ({
         
       {/* ドロワー本体 */}
       <div className={`fixed top-0 right-0 h-full w-[40%] md:w-80 bg-white dark:bg-zinc-900 z-50 
-                      shadow-2xl p-6 transition-transform duration-300 ease-in-out md:top-0 md:right-0 md:h-full md:w-96 md:rounded-none
-                      ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                      shadow-2xl p-2 md:p-4 transition-transform duration-300 ease-in-out md:top-0 md:right-0 md:h-full md:w-96 md:rounded-none
+                      ${isOpen ? 'translate-y-[30%] md:translate-x-0 md:translate-y-0' : 'translate-y-full md:translate-x-full md:translate-y-0'}`}>
         <div className='flex justify-end'>
           <button onClick={onClose} className={`mb-4 text-slate-500 dark:text-white ${currentStyles.masterText}`}>
             ✕ 閉じる
