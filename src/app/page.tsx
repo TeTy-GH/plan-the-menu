@@ -33,7 +33,7 @@ const FONT_SIZES = {
     sectionTitle: 'text-lg',
     badge: 'text-[9px]',
     input: 'text-sm p-1.5',
-    masterText: 'text-sm',
+    masterText: 'text-sm md:text-sm',
     masterBtn: 'text-xs px-1.5 py-0.5',
   },
   medium: {
