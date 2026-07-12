@@ -26,7 +26,7 @@ type MenuType = 'main' | 'side';
 
 const FONT_SIZES = {
   small: {
-    title: 'text-sm md:text-base',
+    title: 'text-sm md:text-sm',
     btn: 'text-xs md:text-sm px-3 py-1.5',
     score: 'text-[11px]',
     category: 'text-xs',
