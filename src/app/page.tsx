@@ -1246,88 +1246,88 @@ export default function Home() {
                 <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
               ) : sortedMenus.length > 0 ? (
 
-sortedMenus.map((menu: Menu) => {
-const isAlreadyKept = keepList.some(item => item.id === menu.id);
+                sortedMenus.map((menu: Menu) => {
+                const isAlreadyKept = keepList.some(item => item.id === menu.id);
 
-return (
-<div 
-  key={menu.id} 
-  
-  // 🌟 スマホ長押し & PC操作の仕掛けをメニューカード全体に付与
-  onTouchStart={(e) => handleIngredientStart(e, menu, (target) => handleOpenEditMenu(target))} // 前述の共通Start関数を流用可能
-  onTouchMove={handleIngredientMove}
-  onTouchEnd={(e) => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-    if (isScrolling.current) {
-      isScrolling.current = false;
-      return;
-    }
-    isLongPressActive.current = false;
-  }}
-  onMouseDown={(e) => {
-    if (e.button !== 0) return;
-    handleIngredientStart(e, menu, (target) => handleOpenEditMenu(target));
-  }}
-  onMouseMove={handleIngredientMove}
-  onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
-  onMouseLeave={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
-  
-  className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition select-none"
-  style={{ WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
->
-  <div className="flex flex-col gap-1 flex-1 pr-2 pl-2 cursor-pointer">
-    <div className="flex flex-wrap items-center gap-3">
-      <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
-      {menu.ingredient_count === 0 && (
-        <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
-          ⚠️食材未登録
-        </span>
-      )}
-    </div>
+                return (
+                <div 
+                  key={menu.id} 
+                  
+                  // 🌟 スマホ長押し & PC操作の仕掛けをメニューカード全体に付与
+                  onTouchStart={(e) => handleIngredientStart(e, menu, (target) => handleOpenEditMenu(target))} // 前述の共通Start関数を流用可能
+                  onTouchMove={handleIngredientMove}
+                  onTouchEnd={(e) => {
+                    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                    if (isScrolling.current) {
+                      isScrolling.current = false;
+                      return;
+                    }
+                    isLongPressActive.current = false;
+                  }}
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return;
+                    handleIngredientStart(e, menu, (target) => handleOpenEditMenu(target));
+                  }}
+                  onMouseMove={handleIngredientMove}
+                  onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+                  onMouseLeave={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+                  
+                  className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-950 hover:bg-indigo-50/30 dark:hover:bg-zinc-800 rounded-xl border border-slate-100 dark:border-zinc-800 transition select-none"
+                  style={{ WebkitTouchCallout: 'none', touchAction: 'pan-y' }}
+                >
+                  <div className="flex flex-col gap-1 flex-1 pr-2 pl-2 cursor-pointer">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className={`font-bold text-slate-800 dark:text-white ${currentStyles.title}`}>{menu.title}</span>
+                      {menu.ingredient_count === 0 && (
+                        <span className={`bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-white border border-rose-200 dark:border-rose-500 px-1.5 py-0.5 rounded font-bold animate-pulse ${currentStyles.badge}`}>
+                          ⚠️食材未登録
+                        </span>
+                      )}
+                    </div>
 
-    {/* スコア・履歴表示部分 */}
-    {sortMode === 'score' ? (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
-          おすすめスコア: {Math.round(menu.score || 0)}点
-        </span>
-      </div>
-    ) : (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
-          最終調理日: {menu.last_cooked_at ? new Date(menu.last_cooked_at).toLocaleDateString() : '未調理'}
-        </span>
-        {menu.cook_count && menu.cook_count > 0 && !menu.is_cancelled ? (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation(); // 親の長押し/クリック判定と競合しないようにガード
-              triggerCancelCookModal(menu.id, menu.title);
-            }} 
-            className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}
-          >
-            ↩ 調理取消
-          </button>
-        ) : null}
-      </div>
-    )}
-  </div>
-  
-  <button 
-    onClick={(e) => {
-      e.stopPropagation(); // ガード
-      handleToggleKeep(menu);
-    }} 
-    className={`rounded-lg font-bold transition-all shadow-sm shrink-0 border ${currentStyles.masterBtn} ${
-      isAlreadyKept
-        ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-white dark:text-black dark:border-white shadow-md scale-95' 
-        : 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-white dark:hover:text-black'
-    }`}
-  >
-    {isAlreadyKept ? '📌 追加済み' : '📌 候補'}
-  </button>
-</div>
-);
-})
+                    {/* スコア・履歴表示部分 */}
+                    {sortMode === 'score' ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
+                          おすすめスコア: {Math.round(menu.score || 0)}点
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-slate-500 dark:text-zinc-400 font-bold ${currentStyles.score}`}>
+                          最終調理日: {menu.last_cooked_at ? new Date(menu.last_cooked_at).toLocaleDateString() : '未調理'}
+                        </span>
+                        {menu.cook_count && menu.cook_count > 0 && !menu.is_cancelled ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation(); // 親の長押し/クリック判定と競合しないようにガード
+                              triggerCancelCookModal(menu.id, menu.title);
+                            }} 
+                            className={`text-rose-500 dark:text-rose-400 hover:text-rose-700 dark:hover:underline font-black ${currentStyles.score}`}
+                          >
+                            ↩ 調理取消
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation(); // ガード
+                      handleToggleKeep(menu);
+                    }} 
+                    className={`rounded-lg font-bold transition-all shadow-sm shrink-0 border ${currentStyles.masterBtn} ${
+                      isAlreadyKept
+                        ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-white dark:text-black dark:border-white shadow-md scale-95' 
+                        : 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-indigo-600 hover:text-white dark:hover:bg-white dark:hover:text-black'
+                    }`}
+                  >
+                    {isAlreadyKept ? '📌 追加済み' : '📌 候補'}
+                  </button>
+                </div>
+                );
+                })
 
               ) : (
                 <p className={`text-slate-400 dark:text-white text-center py-8 ${currentStyles.masterText}`}>メニューが見つかりませんでした。</p>

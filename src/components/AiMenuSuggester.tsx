@@ -88,9 +88,11 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
   const description = hasSlash ? aiMenuTitle.split(' / ')[1].trim() : '';
 
   return (
-    <div className="mb-2 w-full p-5 bg-white dark:bg-stone-900/80 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm space-y-4">
+    <div className="mb-2 w-full p-5 bg-white dark:bg-stone-900/80 rounded-2xl border 
+                  border-slate-200 dark:border-zinc-800 shadow-sm space-y-4">
       {/* 1. 見出し */}
-      <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-zinc-800">
+      <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100 
+                    dark:border-zinc-800">
         <h3 className={`font-black text-slate-800 dark:text-zinc-100 ${currentStyles.title}`}>
           ✨ AI Gemini のおすすめ
         </h3>
@@ -99,7 +101,11 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
             type="button"
             onClick={handleAiSuggest}
             disabled={loading}
-            className={`${currentStyles.masterText} dynamic-chalk py-1.5 px-2 rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm`}
+            className={`${currentStyles.masterText} dynamic-chalk py-1.5 px-2 rounded-xl font-black 
+                      text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-zinc-800 
+                      dark:hover:bg-zinc-700 border border-transparent dark:border-zinc-700 
+                      transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed 
+                      whitespace-nowrap text-xs sm:text-sm`}
           >
             {loading ? '🔄 考案中...' : '🔄 再提案'}
           </button>
