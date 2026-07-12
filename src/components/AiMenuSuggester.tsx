@@ -93,7 +93,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
       {/* 1. 見出し */}
       <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100 
                     dark:border-zinc-800">
-        <h3 className={`font-black text-slate-800 dark:text-zinc-100 ${currentStyles.title}`}>
+        <h3 className={`font-black text-slate-800 dark:text-zinc-100 ${currentStyles.sectionTitle}`}>
           ✨ AI Gemini のおすすめ
         </h3>
         {aiMenuTitle !== null && (
