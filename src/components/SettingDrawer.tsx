@@ -47,7 +47,7 @@ export const SettingDrawer = ({
             ✕ 閉じる
           </button>
         </div>
-        <h2 className={`font-bold text-xl mb-4 ${currentStyles.title}`}>
+        <h2 className={`font-bold text-xl mb-4 ${currentStyles.masterText}`}>
           🔎 文字サイズ
         </h2>
 
