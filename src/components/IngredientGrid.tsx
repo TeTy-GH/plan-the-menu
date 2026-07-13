@@ -28,13 +28,16 @@ export const IngredientGrid: React.FC<IngredientGridProps> = ({
   const isScrolling = useRef(false);
   const isLongPressActive = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
-
+  
   const handleIngredientStart = (e: React.TouchEvent | React.MouseEvent, ingredient: Ingredient) => {
     isScrolling.current = false;
     isLongPressActive.current = false;
 
+    // 💡 スマホでもPCでも、押し始めた位置を正確に記録する
     if ('touches' in e) {
       touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else {
+      touchStartPos.current = { x: e.clientX, y: e.clientY }; // 👈 PCのクリック位置も記録
     }
 
     longPressTimer.current = setTimeout(() => {
@@ -45,14 +48,16 @@ export const IngredientGrid: React.FC<IngredientGridProps> = ({
   };
 
   const handleIngredientMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if ('touches' in e) {
-      const moveX = Math.abs(e.touches[0].clientX - touchStartPos.current.x);
-      const moveY = Math.abs(e.touches[0].clientY - touchStartPos.current.y);
-      if (moveX > 10 || moveY > 10) {
-        isScrolling.current = true;
-        if (longPressTimer.current) clearTimeout(longPressTimer.current);
-      }
-    } else {
+    // 💡 スマホとPCで座標の取得方法を分ける
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    // 動いた距離（絶対値）を計算
+    const moveX = Math.abs(clientX - touchStartPos.current.x);
+    const moveY = Math.abs(clientY - touchStartPos.current.y);
+
+    // 💡 スマホでもPCでも、10px以上ガッツリ動いた時だけ長押しをキャンセルする（手ブレ許容）
+    if (moveX > 10 || moveY > 10) {
       isScrolling.current = true;
       if (longPressTimer.current) clearTimeout(longPressTimer.current);
     }
