@@ -2,6 +2,7 @@
 
 import { INGREDIENT_CATEGORIES } from '@/constants';
 import React, { useRef, useEffect } from 'react';
+import { IngredientGrid } from '@/components/IngredientGrid';
 
 type IngredientCategory = typeof INGREDIENT_CATEGORIES[number];
 
@@ -71,6 +72,27 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   if (!isOpen) return null;
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // 1. モーダルの挙動制御（ESC、フォーカス、スクロールロック）
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      // モーダルが開いた直後にメニュー名の入力欄へフォーカス
+      setTimeout(() => titleInputRef.current?.focus(), 500);
+    } else {
+      document.body.style.removeProperty('overflow');
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.removeProperty('overflow');
+    };
+  }, [isOpen, onClose]);
 
   // 🌟 メモの値（editingMenuMemo）が変わるたびに高さを完璧に再計算する
   useEffect(() => {
@@ -88,8 +110,10 @@ export const MenuModal: React.FC<MenuModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      {/* 🌟 w-full から w-11/12 md:w-4/5 に変更し、max-w-4xl に広げました */}
-      <div className="w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+      
+      <div className="absolute inset-0" onClick={onClose} />
+      
+      <div className="relative w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
@@ -110,12 +134,13 @@ export const MenuModal: React.FC<MenuModalProps> = ({
           {/* メニュー名入力 */}
           <div className="space-y-1">
             <input
+              ref={titleInputRef}
               type="text"
               value={editingMenuTitle}
               onChange={(e) => setEditingMenuTitle(e.target.value)}
               placeholder="例: ハンバーグ"
               className={`w-full border rounded-xl focus:outline-blue-500 transition ${inputGlobalStyle} ${currentStyles.input}`}
-              disabled={masterLoading}
+              //disabled={masterLoading}
             />
           </div>
 
@@ -157,39 +182,15 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             <span className={`block font-bold text-slate-400 dark:text-white mb-1 ${currentStyles.score}`}>
               使用する食材を選択：
             </span>
-            <div className="max-h-48 overflow-y-auto overscroll-contain border border-slate-100 dark:border-stone-100/10 p-2 rounded-xl bg-slate-50/50 dark:bg-stone-900 space-y-2">
-              {INGREDIENT_CATEGORIES.map(category => {
-                const filtered = ingredients.filter(ing => ing.category === category);
-                if (filtered.length === 0) return null;
-                return (
-                  <div key={category} className="space-y-1">
-                    <span className={`block font-black text-indigo-600 dark:text-yellow-600 ${currentStyles.score}`}>
-                      ー {category} ー
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {filtered.map(ing => {
-                        const isTarget = editingMenuIngredients.includes(ing.id);
-                        return (
-                          <button
-                            type="button" 
-                            key={ing.id} 
-                            onClick={() => handleToggleMasterIngredientSelection(ing.id)}
-                            disabled={masterLoading}
-                            className={`rounded border font-bold transition ${currentStyles.masterBtn} ${
-                              isTarget 
-                                ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
-                                : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800'
-                            }`}
-                          >
-                            {ing.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <IngredientGrid
+              ingredients={ingredients}
+              selectedIngredients={editingMenuIngredients} // 💡 メニューモーダル側の選択中のState
+              onToggle={handleToggleMasterIngredientSelection}
+              onLongPressEdit={(target) => {
+                // 💡 メニューモーダルでは長押し編集はさせないので、中身を空っぽにする！
+              }}
+              currentStyles={currentStyles}
+            />
           </div>
 
           {/* レシピ・メモエリア（AI機能付き） */}

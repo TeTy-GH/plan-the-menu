@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface SettingDrawerProps {
   isOpen: boolean;
@@ -14,37 +14,36 @@ export const SettingDrawer = ({
   fontSize, 
   handleFontSizeChange, 
   currentStyles 
-
 }: SettingDrawerProps) => {
 
+  // 1️⃣ 最新の onClose を常にキープするRef（モーダルと同じ安全対策）
+  const onCloseRef = useRef(onClose);
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-    // コンポーネントが閉じられたり消えたりしたときに元に戻す（クリーンアップ）
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]); // isOpen が変わるたびに実行する
-
+  // 2️⃣ スクロールロックとESCキー制御を1本に統合
   useEffect(() => {
-    if (isOpen) {
-      // ドロワーが開いたら body のスクロールを禁止
-      document.body.style.overflow = 'hidden';
-    } else {
-      // 閉じたら元に戻す
-      document.body.style.removeProperty('overflow');
-    }
+    if (!isOpen) return; // 💡 閉じている時は完全にスルーする
 
-    // クリーンアップ処理（コンポーネントが消える時にも確実に元に戻す）
-    return () => {
-      document.body.style.removeProperty('overflow');
+    // === 開いた瞬間に1回だけ実行 ===
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseRef.current();
     };
-  }, [isOpen]);
-  
+
+    window.addEventListener('keydown', handleKeyDown); // 💡 漏れていた登録を追加
+
+    // === 閉じた瞬間に1回だけ実行（クリーンアップ） ===
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown); // 💡 解除もセット
+      document.body.style.removeProperty('overflow'); // 💡 removeProperty が正解
+    };
+  }, [isOpen]); // 💡 依存配列は isOpen のみに絞る
+
+  // ※ もし `if (!isOpen) return null;` などの制御があればここに挟む
+
   return (
     <>
       {/* 背景の暗転（オーバーレイ） */}

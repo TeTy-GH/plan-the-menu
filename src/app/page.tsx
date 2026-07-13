@@ -8,6 +8,7 @@ import { INGREDIENT_CATEGORIES } from '@/constants';
 import { IngredientModal } from '@/components/modals/IngredientModal';
 import { MenuModal } from '@/components/modals/MenuModal';
 import { SettingDrawer } from '@/components/SettingDrawer';
+import { IngredientGrid } from '@/components/IngredientGrid';
 
 console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log("Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -1098,6 +1099,27 @@ export default function Home() {
           </div>
           
           {ingredients.length > 0 ? (
+            <IngredientGrid
+              ingredients={ingredients}
+              selectedIngredients={selectedIngredients}
+              onToggle={(id) => {
+                // 親側でトグルロジックをシンプルに書く
+                if (selectedIngredients.includes(id)) {
+                  setSelectedIngredients(selectedIngredients.filter(item => item !== id));
+                } else {
+                  setSelectedIngredients([...selectedIngredients, id]);
+                }
+              }}
+              onLongPressEdit={(target) => {
+                setSelectedIngForModal(target);
+                setEditingText(target.name);
+                setEditingIngredientCategory(target.category);
+                setIngModalMode('edit');
+                setIsIngModalOpen(true);
+              }}
+              currentStyles={currentStyles}
+            />
+  /*
             <div className="pb-10 max-h-72 overflow-y-auto overscroll-contain pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
               {INGREDIENT_CATEGORIES.map(category => {
                 const filteredIngredients = ingredients.filter(ing => ing.category === category);
@@ -1189,7 +1211,7 @@ export default function Home() {
                   </div>
                 );
               })}
-            </div>
+            </div>*/
           ) : (
             <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>食材がありません。「設定」から登録してください。</p>
           )}
