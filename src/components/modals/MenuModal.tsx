@@ -102,15 +102,23 @@ export const MenuModal: React.FC<MenuModalProps> = ({
       document.documentElement.style.removeProperty('overflow');
     };
   }, [isOpen]);
-  
+
   // 🌟 メモの値（editingMenuMemo）が変わるたびに高さを完璧に再計算する
   useEffect(() => {
-    // 💡 setTimeoutで囲むことで、Reactのレンダリング（文字の反映）が
-    // 完全に終わった「直後の正確な高さ」を確実に取得して適用します。
     const timer = setTimeout(() => {
       if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // 一旦リセットして
-        textareaRef.current.style.height = `${textareaRef.current.scrollHeight * 1.04}px`; // 1.04は高さの認識ズレによるサイズ不足の解消
+        // 💡 1. スクロールしている親コンテナ（flex-1 overflow-y-auto のやつ）を特定し、今の位置を記憶
+        const scrollContainer = textareaRef.current.closest('.overflow-y-auto');
+        const prevScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+
+        // 💡 2. 通常の高さ計算を実行（この一瞬の縮みによる親への影響を...）
+        textareaRef.current.style.height = 'auto'; 
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight + 10}px`; 
+
+        // 💡 3. ガクッとズレそうになった親のスクロール位置を、元の場所に強制送還する！
+        if (scrollContainer) {
+          scrollContainer.scrollTop = prevScrollTop;
+        }
       }
     }, 0);
 
@@ -124,7 +132,9 @@ export const MenuModal: React.FC<MenuModalProps> = ({
       
       <div className="absolute inset-0" onClick={onClose} />
       
-      <div className="relative w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl 
+                      p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col 
+                      max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
@@ -255,6 +265,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
               className={`w-full p-3 border rounded-xl overflow-hidden focus:outline-blue-500 transition resize-none text-base leading-snug ${inputGlobalStyle} ${currentStyles.input}`}
             />
           </div>
+          <div className="h-40 md:h-0 shrink-0" />
         </div>
 
         <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800 shrink-0">
