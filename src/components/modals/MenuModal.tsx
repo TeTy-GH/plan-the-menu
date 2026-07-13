@@ -134,7 +134,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
       
       <div className="relative w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl 
                       p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col 
-                      max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                      max-h-[90dvh] animate-in fade-in zoom-in-95 duration-150">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
