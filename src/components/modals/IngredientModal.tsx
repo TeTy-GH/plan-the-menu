@@ -32,6 +32,7 @@ export const IngredientModal = ({
 }: IngredientModalProps) => {
   
   const onCloseRef = useRef(onClose);
+  
 useEffect(() => {
   onCloseRef.current = onClose;
 }, [onClose]);

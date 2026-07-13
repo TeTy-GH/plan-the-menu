@@ -69,31 +69,40 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   onSave,
   onDelete,
 }) => {
-  if (!isOpen) return null;
+  
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   // 1. モーダルの挙動制御（ESC、フォーカス、スクロールロック）
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      // モーダルが開いた直後にメニュー名の入力欄へフォーカス
-      setTimeout(() => titleInputRef.current?.focus(), 500);
-    } else {
-      document.body.style.removeProperty('overflow');
-    }
+    if (!isOpen) return; // 閉じている時は何も動かさない
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    const timer = setTimeout(() => {
+      titleInputRef.current?.focus(); 
+    }, 100);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('overflow');
     };
-  }, [isOpen, onClose]);
-
+  }, [isOpen]);
+  
   // 🌟 メモの値（editingMenuMemo）が変わるたびに高さを完璧に再計算する
   useEffect(() => {
     // 💡 setTimeoutで囲むことで、Reactのレンダリング（文字の反映）が
@@ -107,6 +116,8 @@ export const MenuModal: React.FC<MenuModalProps> = ({
 
     return () => clearTimeout(timer);
   }, [editingMenuMemo]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
