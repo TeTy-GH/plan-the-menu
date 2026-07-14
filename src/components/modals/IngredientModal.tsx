@@ -45,6 +45,9 @@ useEffect(() => {
 
     // === 💡 ここからは「開いた瞬間」に1回だけ実行される ===
     document.body.style.overflow = 'hidden';
+    document.body.style.height = '100%';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.height = '100%';
     
     const timer = setTimeout(() => {
       inputRef.current?.focus(); 
@@ -62,6 +65,9 @@ useEffect(() => {
       clearTimeout(timer);
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('height');
+      document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('height');
     };
   }, [isOpen]);
   
