@@ -83,7 +83,9 @@ export const MenuModal: React.FC<MenuModalProps> = ({
     if (!isOpen) return; // 閉じている時は何も動かさない
 
     document.body.style.overflow = 'hidden';
+    document.body.style.height = '100%';
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.height = '100%';
 
     const timer = setTimeout(() => {
       titleInputRef.current?.focus(); 
@@ -99,7 +101,9 @@ export const MenuModal: React.FC<MenuModalProps> = ({
       clearTimeout(timer);
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('height');
       document.documentElement.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('height');
     };
   }, [isOpen]);
 
