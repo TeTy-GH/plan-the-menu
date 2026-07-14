@@ -77,35 +77,38 @@ export const MenuModal: React.FC<MenuModalProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+// 📄 モーダル内のスクロールロック用 Effect
 
-  // 1. モーダルの挙動制御（ESC、フォーカス、スクロールロック）
-  useEffect(() => {
-    if (!isOpen) return; // 閉じている時は何も動かさない
+useEffect(() => {
+  if (!isOpen) return; // 暴走ガード
 
-    document.body.style.overflow = 'hidden';
-    document.body.style.height = '100%';
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.height = '100%';
+  // === 💡 [開いた瞬間] 現在のスクロール位置を記憶して、bodyをその場に固定！ ===
+  const scrollY = window.scrollY; // 今のスクロール位置を記録（例: 500px）
+  
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${scrollY}px`; // 記憶した位置で見た目をキープ
+  document.body.style.width = '100%';       // fixedによる横幅の崩れを防止
+  document.body.style.overflow = 'hidden';
 
-    const timer = setTimeout(() => {
-      titleInputRef.current?.focus(); 
-    }, 100);
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') onCloseRef.current(); 
+  };
+  window.addEventListener('keydown', handleKeyDown);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('height');
-      document.documentElement.style.removeProperty('overflow');
-      document.documentElement.style.removeProperty('height');
-    };
-  }, [isOpen]);
+  // === 💡 [閉じた瞬間] クリーンアップで固定を解除し、元の位置に瞬間移動！ ===
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
+    
+    // スタイルをすべて剥ぎ取る
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('top');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('overflow');
+    
+    // 記憶しておいた元のスクロール位置（例: 500px）に一瞬で引き戻す！
+    window.scrollTo(0, scrollY);
+  };
+}, [isOpen]);
 
   // 🌟 メモの値（editingMenuMemo）が変わるたびに高さを完璧に再計算する
   useEffect(() => {
@@ -142,7 +145,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                       max-h-[100dvh] animate-in fade-in zoom-in-95 duration-150">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4 shrink-0">
-          <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
+          <h2 className={`${currentStyles.title} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
             {mode === 'add' ? '🍽️ メニューの追加' : '✏️ メニューの編集'}
           </h2>
           <button 
