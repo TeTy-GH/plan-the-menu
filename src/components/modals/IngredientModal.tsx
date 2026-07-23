@@ -40,36 +40,38 @@ useEffect(() => {
   // フォーカス制御用のRef
   const inputRef = useRef<HTMLInputElement>(null);
   
-  useEffect(() => {
-    if (!isOpen) return; // 閉じている時は何も動かさない
+  // 📄 モーダル内のスクロールロック用 Effect
 
-    // === 💡 ここからは「開いた瞬間」に1回だけ実行される ===
-    document.body.style.overflow = 'hidden';
-    document.body.style.height = '100%';
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.height = '100%';
+useEffect(() => {
+  if (!isOpen) return; // 暴走ガード
+
+  // === 💡 [開いた瞬間] 現在のスクロール位置を記憶して、bodyをその場に固定！ ===
+  const scrollY = window.scrollY; // 今のスクロール位置を記録（例: 500px）
+  
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${scrollY}px`; // 記憶した位置で見た目をキープ
+  document.body.style.width = '100%';       // fixedによる横幅の崩れを防止
+  document.body.style.overflow = 'hidden';
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') onCloseRef.current(); 
+  };
+  window.addEventListener('keydown', handleKeyDown);
+
+  // === 💡 [閉じた瞬間] クリーンアップで固定を解除し、元の位置に瞬間移動！ ===
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown);
     
-    const timer = setTimeout(() => {
-      inputRef.current?.focus(); 
-    }, 100);
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 常に最新の onClose をRef経由で安全に呼び出す
-      if (e.key === 'Escape') onCloseRef.current(); 
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    // === 💡 クリーンアップ（モーダルが閉じた瞬間に1回だけ実行される） ===
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.removeProperty('overflow');
-      document.body.style.removeProperty('height');
-      document.documentElement.style.removeProperty('overflow');
-      document.documentElement.style.removeProperty('height');
-    };
-  }, [isOpen]);
+    // スタイルをすべて剥ぎ取る
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('top');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('overflow');
+    
+    // 記憶しておいた元のスクロール位置（例: 500px）に一瞬で引き戻す！
+    window.scrollTo(0, scrollY);
+  };
+}, [isOpen]);
   
   if (!isOpen) return null;
 

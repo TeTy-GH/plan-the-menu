@@ -53,7 +53,7 @@ export const SettingDrawer = ({
       />
         
       {/* ドロワー本体 */}
-      <div className={`fixed top-0 right-0 h-[25%] md:h-full w-[40%] md:w-80 bg-white dark:bg-zinc-900 z-50 
+      <div className={`fixed top-0 right-0 h-[25%] md:h-full w-[50%] md:w-80 bg-white dark:bg-zinc-900 z-50 
                       shadow-2xl p-2 md:p-4 transition-transform duration-300 ease-in-out md:top-0 md:right-0 md:h-full md:w-96 md:rounded-none
                       ${isOpen ? 'translate-y-0 md:translate-x-0 md:translate-y-0' : 'translate-y-[-100%] md:translate-x-full md:translate-y-0'}`}>
         <div className='flex justify-end'>
@@ -65,7 +65,7 @@ export const SettingDrawer = ({
           🔎 文字サイズ
         </h2>
 
-        <div className="flex flex-norap gap-3 pl-4">
+        <div className="flex flex-norap gap-2 lg:gap-3 pl-4">
           {(['small', 'medium', 'large'] as const).map((size) => {
             const label = size === 'small' ? '小' : size === 'medium' ? '中' : '大';
             
@@ -74,7 +74,7 @@ export const SettingDrawer = ({
                 key={size}
                 onClick={() => handleFontSizeChange(size)}
                 // flex-1 を使うことで、横並びのボタンが均等に幅を分け合います
-                className={`flex-1 min-w-[30%] py-2 rounded-xl font-bold border transition-all text-center ${currentStyles.masterText} ${
+                className={`flex-1 min-w-[30%] py-1 lg:py-2 rounded-xl font-bold border transition-all text-center ${currentStyles.masterText} ${
                   fontSize === size
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-md dark:bg-white dark:text-black dark:border-white'
                     : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800'

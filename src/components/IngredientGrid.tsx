@@ -68,7 +68,8 @@ export const IngredientGrid: React.FC<IngredientGridProps> = ({
   }
 
   return (
-    <div className="pb-10 max-h-72 overflow-y-auto overscroll-contain pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
+    <div className="pb-10 overscroll-contain pr-2 pl-4 rounded-xl bg-white
+                 dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
       {INGREDIENT_CATEGORIES.map(category => {
         const filteredIngredients = ingredients.filter(ing => ing.category === category);
         if (filteredIngredients.length === 0) return null;

@@ -10,14 +10,16 @@ import { MenuModal } from '@/components/modals/MenuModal';
 import { SettingDrawer } from '@/components/SettingDrawer';
 import { IngredientGrid } from '@/components/IngredientGrid';
 
-console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+import { getSupabaseUrl } from '../lib/getApiUrl'; // パスは実際の配置に合わせて調整
+
+const supabaseUrl = getSupabaseUrl();
+
+console.log("Supabase URL:", supabaseUrl);
 console.log("Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+//const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-console.log(process.env.NEXT_PUBLIC_SUPABASE_URL)
 
 type IngredientCategory = typeof INGREDIENT_CATEGORIES[number];
 
@@ -1071,157 +1073,70 @@ export default function Home() {
             onLoadingChange={setAiLoading} // 🟢 子のローディング状態を親と同期
           />
         </div>
-        {/* 使いたい食材 */}
-        <div className="bg-white/70 dark:bg-zinc-950/70 p-6 mb-4 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800">
-        
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-5">
-              <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center gap-2`}>
-                🥦 使いたい食材
-              </h2>
-              <button
-                type="button"
-                onClick={handleOpenAddIngredient} // 👈 先ほど作った新規用の関数を呼ぶ
-                className={`flex items-center justify-center font-black rounded-xl bg-indigo-50 
-                            dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 
-                            hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm 
-                            border dark:border-zinc-700 ${currentStyles.masterBtn}`}
-                title="食材を新規登録"
-              >
-                ✚
-              </button>
-            </div>
-            {selectedIngredients.length > 0 && (
-              <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
-                ＜選択クリア＞
-              </button>
-            )}
-          </div>
-          
-          {ingredients.length > 0 ? (
-            <IngredientGrid
-              ingredients={ingredients}
-              selectedIngredients={selectedIngredients}
-              onToggle={(id) => {
-                // 親側でトグルロジックをシンプルに書く
-                if (selectedIngredients.includes(id)) {
-                  setSelectedIngredients(selectedIngredients.filter(item => item !== id));
-                } else {
-                  setSelectedIngredients([...selectedIngredients, id]);
-                }
-              }}
-              onLongPressEdit={(target) => {
-                setSelectedIngForModal(target);
-                setEditingText(target.name);
-                setEditingIngredientCategory(target.category);
-                setIngModalMode('edit');
-                setIsIngModalOpen(true);
-              }}
-              currentStyles={currentStyles}
-            />
-  /*
-            <div className="pb-10 max-h-72 overflow-y-auto overscroll-contain pr-2 pl-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner">
-              {INGREDIENT_CATEGORIES.map(category => {
-                const filteredIngredients = ingredients.filter(ing => ing.category === category);
-                if (filteredIngredients.length === 0) return null;
-                
-                return (
-                  <div key={category} className="space-y-1.5">
-                    <span className={`pt-4 block font-black text-indigo-600 dark:text-yellow-600 tracking-wider ${currentStyles.category}`}>
-                      ー {category} －
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {filteredIngredients.map(ing => {
-                        const isTarget = selectedIngredients.includes(ing.id);
 
-                        return (
-                          <button
-                            key={ing.id}// 🟢 スマホ・タブレット（タッチ）用
-                            onTouchStart={(e) => handleIngredientStart(e, ing, (target) => {
-                              setSelectedIngForModal(target);
-                              setEditingText(target.name);
-                              setEditingIngredientCategory(target.category);
-                              setIngModalMode('edit');
-                              setIsIngModalOpen(true);
-                            })}
-                            onTouchMove={handleIngredientMove}
-                            onTouchEnd={(e) => {
-                              if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                              
-                              if (isScrolling.current) {
-                                e.preventDefault();
-                                isScrolling.current = false;
-                                isLongPressActive.current = false;
-                                return;
-                              }
-                              if (!isLongPressActive.current) {
-                                handleToggleIngredient(ing.id);
-                              } else {
-                                e.preventDefault();
-                              }
-                              isLongPressActive.current = false;
-                            }}
 
-                            // 🔵 PC（マウス）用
-                            onMouseDown={(e) => {
-                              if (e.button !== 0) return; // 左クリックのみ
-                              handleIngredientStart(e, ing, (target) => {
-                                setSelectedIngForModal(target);
-                                setEditingText(target.name);
-                                setEditingIngredientCategory(target.category);
-                                setIngModalMode('edit');
-                                setIsIngModalOpen(true);
-                              });
-                            }}
-                            onMouseMove={handleIngredientMove} // マウスを押し下げたまま動かした時のキャンセル用
-                            onMouseUp={() => {
-                              if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                            }}
-                            onMouseLeave={() => {
-                              // ボタンの外にカーソルが出たらタイマーを解除
-                              if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                            }}
-
-                            // 🟢 PC（マウス）用のクリックイベント
-                            onClick={() => {
-                              // マウス操作、かつ長押しが発火していなかった場合のみトグルを動かす
-                              if (window.matchMedia('(pointer: fine)').matches) {
-                                if (!isLongPressActive.current) {
-                                  handleToggleIngredient(ing.id);
-                                }
-                                isLongPressActive.current = false; // フラグをリセット
-                              }
-                            }}
-
-                            className={`rounded-xl border font-bold transition select-none ${currentStyles.masterBtn} ${
-                              isTarget 
-                                ? 'bg-emerald-600 dark:bg-emerald-700 text-white border-emerald-600' 
-                                : 'bg-white dark:bg-zinc-950 text-slate-600 dark:text-white border-slate-200 dark:border-zinc-700'
-                            }`}
-                            style={{
-                              WebkitTouchCallout: 'none',
-                              touchAction: 'pan-y'
-                            }}
-                          >
-                            {ing.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>*/
-          ) : (
-            <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>食材がありません。「設定」から登録してください。</p>
-          )}
-        </div>
 
         {/* メインカラム */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+          {/* 使いたい食材 */}
+          <div className="flex flex-col bg-white/70 dark:bg-zinc-950/70 p-6 mb-4 rounded-2xl shadow-sm border 
+                        border-slate-200/80 dark:border-zinc-800 max-h-[80vh] lg:h-[60vh]">
+          
+            <div className="flex items-center justify-between mb-4shrink-0">
+              <div className="flex items-center gap-5 pb-4">
+                <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white flex items-center`}>
+                  🥦 使いたい食材
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleOpenAddIngredient} // 👈 先ほど作った新規用の関数を呼ぶ
+                  className={`flex items-center justify-center font-black rounded-xl bg-indigo-50 
+                              dark:bg-zinc-800 text-indigo-600 dark:text-yellow-600 
+                              hover:bg-indigo-100 dark:hover:bg-zinc-700 transition shadow-sm 
+                              border dark:border-zinc-700 ${currentStyles.masterBtn}`}
+                  title="食材を新規登録"
+                >
+                  ✚
+                </button>
+              </div>
+              {selectedIngredients.length > 0 && (
+                <button onClick={() => setSelectedIngredients([])} className={`text-indigo-600 dark:text-white hover:text-indigo-800 dark:hover:underline font-bold underline ${currentStyles.score}`}>
+                  ＜選択クリア＞
+                </button>
+              )}
+            </div>
+            {ingredients.length > 0 ? (
+              <div className="overflow-y-auto overscroll-contain max-h-[100%]">
+                <IngredientGrid
+                  ingredients={ingredients}
+                  selectedIngredients={selectedIngredients}
+                  onToggle={(id) => {
+                    // 親側でトグルロジックをシンプルに書く
+                    if (selectedIngredients.includes(id)) {
+                      setSelectedIngredients(selectedIngredients.filter(item => item !== id));
+                    } else {
+                      setSelectedIngredients([...selectedIngredients, id]);
+                    }
+                  }}
+                  onLongPressEdit={(target) => {
+                    setSelectedIngForModal(target);
+                    setEditingText(target.name);
+                    setEditingIngredientCategory(target.category);
+                    setIngModalMode('edit');
+                    setIsIngModalOpen(true);
+                  }}
+                  currentStyles={currentStyles}
+                />
+              </div>
+            ) : (
+              <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>食材がありません。「設定」から登録してください。</p>
+            )}
+          </div>
+
           {/* おすすめリスト */}
-          <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
-            <div className="flex items-center gap-5 mb-4">
+          <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border 
+                        border-slate-200/80 dark:border-stone-100/10 flex flex-col max-h-[80vh] lg:h-[60vh]">
+            <div className="flex items-center gap-5 mb-4 shrink-0">
               <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                 {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
               </h2>
@@ -1263,7 +1178,7 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="pb-10 overflow-y-auto overscroll-contain max-h-130 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner space-y-3">
+            <div className="flex-1 overflow-y-auto overscroll-contain min-h-0 pb-10 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-stone-100/10 shadow-inner space-y-3">
               {loading ? (
                 <div className={`text-center py-8 text-slate-400 dark:text-white animate-pulse ${currentStyles.masterText}`}>メニューを取得中...</div>
               ) : sortedMenus.length > 0 ? (
@@ -1356,19 +1271,28 @@ export default function Home() {
               )}
             </div>
           </div>
+        </div>
 
-          {/* 調理候補 */}
-          <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
-            <div className="flex items-center gap-2 mb-2 border-slate-100 dark:border-zinc-800 pb-3">
-              <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
-                📌 調理候補
-              </h2>
-              <span className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-700 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{keepList.length}件</span>
-            </div>
-            <div className="pb-10 p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
+
+
+
+
+        {/* 調理候補 */}
+        <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border border-slate-200/80 dark:border-stone-100/10 flex flex-col">
+          <div className="flex items-center gap-2 mb-2 border-slate-100 dark:border-zinc-800 pb-3">
+            <h2 className={`${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
+              📌 調理候補
+            </h2>
+            <span className={`bg-indigo-100 dark:bg-zinc-800 text-indigo-700 dark:text-white font-bold px-2 py-0.5 rounded-full ${currentStyles.badge}`}>{keepList.length}件</span>
+          </div>
+          
+          <div className='grid grid-cols-1 lg:grid-cols-2 lg:gap-6 items-stretch'>
+
+            <div className="flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
               {keepList.length > 0 ? (
                 keepList.map(menu => (
-                  <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border border-indigo-100/70 dark:border-zinc-800">
+                  <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border
+                                             border-indigo-100/70 dark:border-zinc-800">
                     <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>
                       {menu.title}
                       {/* 🟢 メモがある場合のみアイコンを表示 */}
@@ -1403,8 +1327,11 @@ export default function Home() {
                   <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>作りたいメニューを追加してみましょう</p>
                 </div>
               )}
+            </div>
+
+            <div className="flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
               {keepList.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-indigo-100 dark:border-zinc-800 space-y-3">
+                <div className="flex-1 border-indigo-100 dark:border-zinc-800 space-y-3">
                   <h3 className={`font-bold text-indigo-700 dark:text-white ${currentStyles.masterText}`}>
                     🛒 必要な食材
                   </h3>

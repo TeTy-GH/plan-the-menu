@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { getSupabaseUrl } from '@/lib/getApiUrl'; 
 
 interface Menu {
   id: string;
@@ -30,6 +31,24 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
     if (onLoadingChange) onLoadingChange(loading);
   }, [loading, onLoadingChange]);
 
+const fetchMenu = async (mode: 'init' | 'force', ingredients: string[]) => {
+  const baseUrl = getSupabaseUrl();
+  const url = `${baseUrl}/functions/v1/suggest-menu`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, ingredient_ids: ingredients })
+    });
+    return response;
+  } catch (error) {
+    // デバッグ用: 画面上にエラーを表示
+    alert(`Fetch失敗\nURL: ${url}\nエラー: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
+};
+/*
   const fetchMenu = async (mode: 'init' | 'force', ingredients: string[]) => {
     const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const response = await fetch(`${baseUrl}/functions/v1/suggest-menu`, {
@@ -39,7 +58,7 @@ const AiMenuSuggester = forwardRef<{ handleAiSuggest: () => void }, AiMenuSugges
     });
     return response;
   };
-
+*/
   useEffect(() => {
     const initMenu = async () => {
       setLoading(true);

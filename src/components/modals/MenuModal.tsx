@@ -141,7 +141,7 @@ useEffect(() => {
       <div className="absolute inset-0" onClick={onClose} />
       
       <div className="relative w-11/12 md:w-4/5 max-w-4xl bg-white dark:bg-zinc-950 rounded-2xl 
-                      p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col 
+                      p-2 lg:p-6 shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col 
                       max-h-[100dvh] animate-in fade-in zoom-in-95 duration-150">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4 shrink-0">
@@ -274,10 +274,9 @@ useEffect(() => {
                         transition resize-none leading-snug ${inputGlobalStyle} ${currentStyles.input}`}
             />
           </div>
-          <div className="h-40 md:h-0 shrink-0" />
         </div>
 
-        <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800 shrink-0">
+        <div className="flex items-center justify-between mt-5 pt-2 border-t border-slate-100 dark:border-zinc-800 shrink-0">
           {/* 編集モードの時だけ削除ボタンを表示 */}
           {mode === 'edit' ? (
             <button
