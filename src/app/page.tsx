@@ -1288,29 +1288,28 @@ export default function Home() {
           
           <div className='grid grid-cols-1 lg:grid-cols-2 lg:gap-6 items-stretch'>
 
-            <div className="flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
-              {keepList.length > 0 ? (
-                keepList.map(menu => (
+            {keepList.length > 0 ? (
+              <div className="flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
+                {keepList.map(menu => (
                   <div key={menu.id} className="flex items-center justify-between p-3 bg-indigo-50/40 dark:bg-zinc-950 rounded-xl border
                                              border-indigo-100/70 dark:border-zinc-800">
                     <span className={`font-bold text-slate-800 dark:text-white flex-1 pr-2 ${currentStyles.title}`}>
                       {menu.title}
                       {/* 🟢 メモがある場合のみアイコンを表示 */}
                       {menu.memo && (
-                          <button 
-                            onClick={() => setModal({
-                              show: true,
-                              type: 'info', // 🟢 ボタンを「確認」1つだけにするために 'info' を指定
-                              title: `${menu.title} のメモ`, // 🟢 ご希望のヘッダータイトル
-                              message: menu.memo, // 🟢 ここにメモの本文を叩き込む
-                            })} 
-                            className="ml-2 text-amber-500 hover:text-amber-600 transition shrink-0"
-                          >
-                            📝
-                          </button>
-                        )}
-                        
-                      </span>
+                        <button 
+                          onClick={() => setModal({
+                            show: true,
+                            type: 'info', // 🟢 ボタンを「確認」1つだけにするために 'info' を指定
+                            title: `${menu.title} のメモ`, // 🟢 ご希望のヘッダータイトル
+                            message: menu.memo, // 🟢 ここにメモの本文を叩き込む
+                          })} 
+                          className="ml-2 text-amber-500 hover:text-amber-600 transition shrink-0"
+                        >
+                          📝
+                        </button>
+                      )}
+                    </span>
 
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => triggerMadeModal(menu)} className={`bg-emerald-600 dark:bg-emerald-700 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg font-bold shadow-sm transition ${currentStyles.masterBtn}`}>
@@ -1321,16 +1320,20 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
-                ))
-              ) : (
+                ))}
+              </div>
+            ) : (
+              <div className="col-span-2 flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
                 <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/30 dark:bg-stone-900">
-                  <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>作りたいメニューを追加してみましょう</p>
+                  <p className={`text-slate-400 dark:text-white ${currentStyles.masterText}`}>
+                    作りたいメニューを追加してみましょう
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            <div className="flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
-              {keepList.length > 0 && (
+            {keepList.length > 0 && (
+              <div className="flex flex-col p-4 rounded-xl bg-white dark:bg-stone-900 border border-slate-200 dark:border-zinc-800 shadow-inner space-y-3">
                 <div className="flex-1 border-indigo-100 dark:border-zinc-800 space-y-3">
                   <h3 className={`font-bold text-indigo-700 dark:text-white ${currentStyles.masterText}`}>
                     🛒 必要な食材
@@ -1359,11 +1362,13 @@ export default function Home() {
                       })}
                     </div>
                   ) : (
-                    <span className={`text-slate-400 dark:text-white ${currentStyles.score}`}>食材情報が未登録のメニューが含まれています</span>
+                    <span className={`text-slate-400 dark:text-white ${currentStyles.score}`}>
+                      　食材情報が未登録のメニューが選択されています
+                    </span>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
