@@ -1080,7 +1080,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
           {/* 使いたい食材 */}
           <div className="flex flex-col bg-white/70 dark:bg-zinc-950/70 p-6 mb-4 rounded-2xl shadow-sm border 
-                        border-slate-200/80 dark:border-zinc-800 max-h-[80vh] lg:h-[60vh]">
+                        border-slate-200/80 dark:border-zinc-800 max-h-[80vh] lg:h-[80vh]">
           
             <div className="flex items-center justify-between mb-4shrink-0">
               <div className="flex items-center gap-5 pb-4">
@@ -1135,7 +1135,7 @@ export default function Home() {
 
           {/* おすすめリスト */}
           <div className="bg-white dark:bg-zinc-950/70 p-6 rounded-2xl shadow-sm border 
-                        border-slate-200/80 dark:border-stone-100/10 flex flex-col max-h-[80vh] lg:h-[60vh]">
+                        border-slate-200/80 dark:border-stone-100/10 flex flex-col max-h-[80vh] lg:h-[80vh]">
             <div className="flex items-center gap-5 mb-4 shrink-0">
               <h2 className={`whitespace-nowrap ${currentStyles.sectionTitle} font-bold text-slate-700 dark:text-white`}>
                 {selectedIngredients.length === 0 ? '📋 おすすめメニュー' : '📋 おすすめメニュー（食材選択中）'}
